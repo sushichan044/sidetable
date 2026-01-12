@@ -72,7 +72,6 @@ $ sidetable help
 
 # Show version
 $ sidetable --version
-$ sidetable version
 ```
 
 ### Example: integrate with [ghq](https://github.com/x-motemen/ghq)

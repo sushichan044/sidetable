@@ -15,8 +15,6 @@ import (
 
 func main() {
 	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-
 		var exitErr *action.ExitError
 		// NOTE: use error.AsType after Go 1.26 released
 		if errors.As(err, &exitErr) {
@@ -47,7 +45,7 @@ func newRootCommand(stdout, stderr io.Writer, cwd string) *cobra.Command {
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
-	root.AddCommand(newVersionCommand(stdout))
+	root.AddCommand(newDoctorCommand(cwd))
 
 	// Try to load project and add dynamic commands
 	// If project initialization fails, only built-in commands are available (graceful fallback)
@@ -96,16 +94,6 @@ func buildProjectCommands(project *sidetable.Project) []*cobra.Command {
 	return cmds
 }
 
-func newVersionCommand(stdout io.Writer) *cobra.Command {
-	return &cobra.Command{
-		Use:   "version",
-		Short: "Show version",
-		Run: func(_ *cobra.Command, _ []string) {
-			fmt.Fprintln(stdout, version.Get())
-		},
-	}
-}
-
 func newListCommand(project *sidetable.Project) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
@@ -122,6 +110,42 @@ func newListCommand(project *sidetable.Project) *cobra.Command {
 				}
 				fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\n", entry.Name, entry.Description)
 			}
+			return nil
+		},
+	}
+}
+
+func newDoctorCommand(cwd string) *cobra.Command {
+	return &cobra.Command{
+		Use:   "doctor",
+		Short: "Check configuration for issues",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			fmt.Fprintln(cmd.OutOrStdout(), "Running sidetable doctor...")
+
+			project, projectErr := sidetable.NewProject(cwd)
+			if projectErr != nil {
+				return fmt.Errorf("⚠️  cannot initialize project: %w", projectErr)
+			}
+
+			var errs []error
+			cmds, listErr := project.ListCommands()
+			if listErr != nil {
+				errs = append(errs, fmt.Errorf("⚠️  cannot list commands: %w", listErr))
+			}
+
+			for _, info := range cmds {
+				if isBuiltinCommand(info.Name) {
+					errs = append(errs, fmt.Errorf("⚠️  command %q conflicts with builtin command", info.Name))
+				}
+				if info.Alias != "" && isBuiltinCommand(info.Alias) {
+					errs = append(errs, fmt.Errorf("⚠️  command alias %q conflicts with builtin command", info.Alias))
+				}
+			}
+
+			if len(errs) > 0 {
+				return errors.Join(errs...)
+			}
+
 			return nil
 		},
 	}

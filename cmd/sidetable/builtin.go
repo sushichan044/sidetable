@@ -3,9 +3,9 @@ package main
 var (
 	//nolint:gochecknoglobals // This is necessary
 	builtinCommands = map[string]struct{}{
-		"version":    {},
 		"list":       {},
 		"completion": {},
+		"doctor":     {},
 	}
 )
 
