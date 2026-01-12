@@ -70,7 +70,7 @@ func TestResolvePathFallbackXDG(t *testing.T) {
 
 	path, err := config.ResolvePath()
 	require.NoError(t, err)
-	require.YAMLEq(t, ymlPath, path)
+	require.Equal(t, ymlPath, path) //nolint:testifylint // Comparing file paths, not YAML content
 }
 
 func TestValidate(t *testing.T) {
