@@ -32,28 +32,26 @@ func run(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 
 	if showHelp {
-		return executeBuiltin([]string{"--help"}, stdout, stderr)
+		return executeBuiltin([]string{"--help"}, stdout, stderr, cwd)
 	}
 
 	if showVersion {
-		fmt.Fprintln(stdout, version.Get())
-		return nil
+		return executeBuiltin([]string{"version"}, stdout, stderr, cwd)
 	}
 
 	// Handle built-in commands: no args, help, version, list
 	// Pass only remaining args to avoid global flag interference with Cobra's flag parsing
 	if len(remaining) == 0 || isBuiltIn(remaining[0]) {
-		return executeBuiltin(remaining, stdout, stderr)
+		return executeBuiltin(remaining, stdout, stderr, cwd)
 	}
 
-	projectDir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	project, err := sidetable.NewProject(projectDir)
+	project, err := sidetable.NewProject(cwd)
 	if err != nil {
 		return err
 	}
@@ -84,8 +82,8 @@ func parseGlobalFlags(args []string) (bool, bool, []string, error) {
 	return showVersion, showHelp, fs.Args(), nil
 }
 
-func executeBuiltin(args []string, stdout, stderr io.Writer) error {
-	root := newRootCommand(stdout, stderr)
+func executeBuiltin(args []string, stdout, stderr io.Writer, cwd string) error {
+	root := newRootCommand(stdout, stderr, cwd)
 	root.SetArgs(args)
 	if err := root.Execute(); err != nil {
 		return err
@@ -93,7 +91,7 @@ func executeBuiltin(args []string, stdout, stderr io.Writer) error {
 	return nil
 }
 
-func newRootCommand(stdout, stderr io.Writer) *cobra.Command {
+func newRootCommand(stdout, stderr io.Writer, cwd string) *cobra.Command {
 	root := &cobra.Command{
 		Use:           "sidetable",
 		SilenceErrors: true,
@@ -102,7 +100,7 @@ func newRootCommand(stdout, stderr io.Writer) *cobra.Command {
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
-	root.AddCommand(newListCommand())
+	root.AddCommand(newListCommand(cwd))
 	root.AddCommand(newVersionCommand(stdout))
 
 	return root
@@ -118,15 +116,11 @@ func newVersionCommand(stdout io.Writer) *cobra.Command {
 	}
 }
 
-func newListCommand() *cobra.Command {
+func newListCommand(projectDir string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List available commands",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			projectDir, err := os.Getwd()
-			if err != nil {
-				return err
-			}
 			project, err := sidetable.NewProject(projectDir)
 			if err != nil {
 				return err
