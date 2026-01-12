@@ -17,60 +17,52 @@ import (
 )
 
 func main() {
-	exitCode, err := run(os.Args[1:], os.Stdout, os.Stderr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		if exitCode == 0 {
-			exitCode = 1
-		}
+	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
 	}
-	os.Exit(exitCode)
+	os.Exit(0)
 }
 
-func run(args []string, stdout, stderr io.Writer) (int, error) {
+func run(args []string, stdout, stderr io.Writer) error {
 	configPath, showVersion, showHelp, remaining, err := parseGlobalFlags(args)
 	if err != nil {
-		return 1, err
+		return err
 	}
 
 	if showHelp {
 		return executeBuiltin([]string{"--help"}, stdout, stderr)
 	}
 
-	if showVersion && len(remaining) == 0 {
+	if showVersion {
 		fmt.Fprintln(stdout, version.Get())
-		return 0, nil
+		return nil
 	}
 
 	if len(remaining) == 0 || isBuiltIn(remaining[0]) {
 		return executeBuiltin(args, stdout, stderr)
 	}
 
-	if showVersion {
-		fmt.Fprintln(stdout, version.Get())
-		return 0, nil
-	}
-
 	path, err := resolveConfigPath(configPath)
 	if err != nil {
-		return 1, err
+		return err
 	}
 	cfg, err := config.Load(path)
 	if err != nil {
-		return 1, err
+		return err
 	}
 
 	projectDir, err := os.Getwd()
 	if err != nil {
-		return 1, err
+		return err
 	}
 
 	spec, err := delegate.Build(cfg, remaining[0], remaining[1:], projectDir)
 	if err != nil {
-		return 1, err
+		return err
 	}
 
-	return delegate.Execute(spec), nil
+	return delegate.Execute(spec)
 }
 
 func parseGlobalFlags(args []string) (string, bool, bool, []string, error) {
@@ -82,9 +74,9 @@ func parseGlobalFlags(args []string) (string, bool, bool, []string, error) {
 	var configPath string
 	var showVersion bool
 	var showHelp bool
-	fs.StringVar(&configPath, "config", "", "config path")
-	fs.BoolVar(&showVersion, "version", false, "show version")
-	fs.BoolVar(&showHelp, "help", false, "show help")
+	fs.StringVarP(&configPath, "config", "c", "", "config path")
+	fs.BoolVarP(&showVersion, "version", "v", false, "show version")
+	fs.BoolVarP(&showHelp, "help", "h", false, "show help")
 
 	if err := fs.Parse(args); err != nil {
 		return "", false, false, nil, err
@@ -93,13 +85,13 @@ func parseGlobalFlags(args []string) (string, bool, bool, []string, error) {
 	return configPath, showVersion, showHelp, fs.Args(), nil
 }
 
-func executeBuiltin(args []string, stdout, stderr io.Writer) (int, error) {
+func executeBuiltin(args []string, stdout, stderr io.Writer) error {
 	root := newRootCommand(stdout, stderr)
 	root.SetArgs(args)
 	if err := root.Execute(); err != nil {
-		return 1, err
+		return err
 	}
-	return 0, nil
+	return nil
 }
 
 func newRootCommand(stdout, stderr io.Writer) *cobra.Command {
@@ -113,7 +105,7 @@ func newRootCommand(stdout, stderr io.Writer) *cobra.Command {
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
-	root.PersistentFlags().StringVar(&configPath, "config", "", "config path")
+	root.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config path")
 
 	root.AddCommand(newListCommand(&configPath))
 	root.AddCommand(newVersionCommand(stdout))

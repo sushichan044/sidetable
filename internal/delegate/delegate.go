@@ -84,7 +84,7 @@ func Build(cfg *config.Config, name string, userArgs []string, projectDir string
 }
 
 // Execute runs the delegated command and returns its exit code.
-func Execute(spec *Spec) int {
+func Execute(spec *Spec) error {
 	// #nosec G204 -- command/args are from user-owned config; explicit delegation is intended.
 	cmd := exec.CommandContext(context.Background(), spec.Command, spec.Args...)
 	cmd.Env = spec.Env
@@ -94,11 +94,11 @@ func Execute(spec *Spec) int {
 
 	if err := cmd.Run(); err != nil {
 		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
-			return exitErr.ExitCode()
+			return fmt.Errorf("command exited with code %d", exitErr.ExitCode())
 		}
-		return 1
+		return err
 	}
-	return 0
+	return nil
 }
 
 type templateContext struct {
