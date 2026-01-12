@@ -22,7 +22,7 @@ go mod tidy                 # Clean up dependencies
 
 ## Project Context
 
-sidetable is a Go CLI tool for manage personal directory per project.
+sidetable is a Go CLI tool for managing personal directories per project.
 See `docs/ai/SPEC.md` for detailed specifications ONLY IF NEEDED.
 
 ## Sources of Truth

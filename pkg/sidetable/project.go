@@ -2,6 +2,7 @@ package sidetable
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/sushichan044/sidetable/internal/action"
@@ -23,6 +24,22 @@ type Project struct {
 
 // NewProject loads config and prepares a project context.
 func NewProject(projectDir string) (*Project, error) {
+	if projectDir == "" {
+		return nil, errors.New("projectDir must not be empty")
+	}
+
+	info, err := os.Stat(projectDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("projectDir does not exist: %s", projectDir)
+		}
+		return nil, fmt.Errorf("failed to stat projectDir: %w", err)
+	}
+
+	if !info.IsDir() {
+		return nil, fmt.Errorf("projectDir is not a directory: %s", projectDir)
+	}
+
 	path, err := ResolveConfigPath()
 	if err != nil {
 		return nil, err
@@ -103,9 +120,4 @@ func (p *Project) SetProjectDir(projectDir string) {
 		return
 	}
 	p.projectDir = projectDir
-}
-
-// Env returns the current environment, useful for API callers.
-func Env() []string {
-	return os.Environ()
 }

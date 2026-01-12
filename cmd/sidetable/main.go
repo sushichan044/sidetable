@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/sushichan044/sidetable/internal/action"
 	"github.com/sushichan044/sidetable/pkg/sidetable"
 	"github.com/sushichan044/sidetable/version"
 )
@@ -15,9 +17,14 @@ import (
 func main() {
 	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
+
+		var exitErr *action.ExitError
+		// NOTE: use error.AsType after Go 1.26 released
+		if errors.As(err, &exitErr) {
+			os.Exit(exitErr.Code)
+		}
 		os.Exit(1)
 	}
-	os.Exit(0)
 }
 
 func run(args []string, stdout, stderr io.Writer) error {
@@ -35,11 +42,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return nil
 	}
 
-	if
-	// $ <cmd>
-	len(remaining) == 0 ||
-		// $ <cmd> help, <cmd> version, <cmd> list ...
-		isBuiltIn(remaining[0]) {
+	// Handle built-in commands: no args, help, version, list
+	if len(remaining) == 0 || isBuiltIn(remaining[0]) {
 		return executeBuiltin(args, stdout, stderr)
 	}
 

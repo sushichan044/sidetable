@@ -167,7 +167,7 @@ Each string in `command`, `args`, `env`, and `description` is evaluated as a Go 
 
 `args.prepend` and `args.append` are evaluated as templates, then combined as:
 
-```
+```text
 prepend + userArgs + append
 ```
 
@@ -193,7 +193,7 @@ $ sidetable example arg1 arg2
 
 ### Requirements
 
-- Go 1.23+
+- Go 1.25+
 - [mise](https://mise.jdx.dev/) (task runner, optional)
 
 ### Quick commands

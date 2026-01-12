@@ -23,7 +23,7 @@ func TestResolvePath(t *testing.T) {
 		require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 		path, err := config.ResolvePath()
 		require.NoError(t, err)
-		require.YAMLEq(t, ymlPath, path)
+		require.Equal(t, ymlPath, path) //nolint:testifylint // Comparing file paths, not YAML content
 		require.NoError(t, os.Remove(ymlPath))
 	})
 
@@ -53,7 +53,7 @@ func TestResolvePathPrefersEnvDir(t *testing.T) {
 
 	path, err := config.ResolvePath()
 	require.NoError(t, err)
-	require.YAMLEq(t, envPath, path)
+	require.Equal(t, envPath, path)
 }
 
 func TestResolvePathFallbackXDG(t *testing.T) {

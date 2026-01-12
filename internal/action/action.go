@@ -18,6 +18,20 @@ var (
 	ErrCommandTemplateHasSpace = errors.New("command template contains spaces")
 )
 
+// ExitError represents a command that exited with non-zero status.
+type ExitError struct {
+	Code int
+	Err  error
+}
+
+func (e *ExitError) Error() string {
+	return fmt.Sprintf("command exited with code %d", e.Code)
+}
+
+func (e *ExitError) Unwrap() error {
+	return e.Err
+}
+
 // Action is a resolved delegated command.
 type Action struct {
 	Command    string
@@ -87,7 +101,10 @@ func Execute(spec *Action) error {
 
 	if err := cmd.Run(); err != nil {
 		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
-			return fmt.Errorf("command exited with code %d", exitErr.ExitCode())
+			return &ExitError{
+				Code: exitErr.ExitCode(),
+				Err:  err,
+			}
 		}
 		return err
 	}
