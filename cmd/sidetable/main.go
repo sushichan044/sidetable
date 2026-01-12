@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/sushichan044/sidetable/pkg/sidetable"
+	"github.com/sushichan044/sidetable/utils/spacing"
 	"github.com/sushichan044/sidetable/version"
 )
 
@@ -92,18 +93,34 @@ func newListCommand(project *sidetable.Project) *cobra.Command {
 		Use:   "list",
 		Short: "List available commands",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			commands, err := project.ListCommands()
-			if err != nil {
+			commands, listErr := project.ListCommands()
+			if listErr != nil {
+				return listErr
+			}
+
+			formatter := spacing.NewFormatter(
+				spacing.Column(), // Command Name
+				//nolint:mnd // Justification: fixed spacing value for better readability
+				spacing.MinSpacing(2),
+				spacing.Column(), // Alias
+				//nolint:mnd // Justification: fixed spacing value for better readability
+				spacing.MinSpacing(4),
+				spacing.Column(), // Description
+			)
+
+			rows := make([][]string, 0, len(commands))
+			for _, info := range commands {
+				alias := info.Alias
+				if alias != "" {
+					alias = fmt.Sprintf("(%s)", alias)
+				}
+				rows = append(rows, []string{info.Name, alias, info.Description})
+			}
+
+			if err := formatter.AddRows(rows...); err != nil {
 				return err
 			}
-			for _, entry := range commands {
-				if entry.Alias != "" {
-					fmt.Fprintf(cmd.OutOrStdout(), "%s (%s)\t%s\n", entry.Name, entry.Alias, entry.Description)
-					continue
-				}
-				fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\n", entry.Name, entry.Description)
-			}
-			return nil
+			return formatter.Format(cmd.OutOrStdout())
 		},
 	}
 }
