@@ -54,19 +54,25 @@ func newRootCommand(stdout, stderr io.Writer, cwd string) *cobra.Command {
 	project, err := sidetable.NewProject(cwd)
 	if err == nil {
 		root.AddCommand(newListCommand(project))
-		addDynamicCommands(root, project)
+		root.AddCommand(buildProjectCommands(project)...)
 	}
 
 	return root
 }
 
-func addDynamicCommands(root *cobra.Command, project *sidetable.Project) {
+func buildProjectCommands(project *sidetable.Project) []*cobra.Command {
 	commands, err := project.ListCommands()
 	if err != nil {
-		return
+		return nil
 	}
 
+	var cmds []*cobra.Command
 	for _, info := range commands {
+		if isBuiltinCommand(info.Name) {
+			// Skip built-in commands to avoid conflict
+			continue
+		}
+
 		subCmd := &cobra.Command{
 			Use:                info.Name,
 			Short:              info.Description,
@@ -84,8 +90,10 @@ func addDynamicCommands(root *cobra.Command, project *sidetable.Project) {
 		if info.Alias != "" {
 			subCmd.Aliases = []string{info.Alias}
 		}
-		root.AddCommand(subCmd)
+		cmds = append(cmds, subCmd)
 	}
+
+	return cmds
 }
 
 func newVersionCommand(stdout io.Writer) *cobra.Command {
