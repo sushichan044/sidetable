@@ -24,7 +24,6 @@ You define subcommands in a config file and can execute arbitrary commands as `s
     - [Requirements](#requirements)
     - [Quick commands](#quick-commands)
     - [Standard Go commands](#standard-go-commands)
-    - [Project structure](#project-structure)
   - [License](#license)
   - [Contributing](#contributing)
 
@@ -231,27 +230,6 @@ go mod tidy
 
 # Tests with coverage
 go test -cover ./...
-```
-
-### Project structure
-
-```
-sidetable/
-├── cmd/sidetable/          # CLI entry point
-│   └── main.go
-├── pkg/sidetable/          # Public API
-│   └── project.go
-├── internal/               # Internal packages
-│   ├── config/            # Config loading
-│   ├── action/            # Command execution
-│   └── xdg/               # XDG Base Directory support
-├── docs/ai/               # Specification
-│   └── SPEC.md
-├── go.mod
-├── go.sum
-├── mise.toml              # Task runner config
-├── .golangci.yml          # Lint config
-└── .goreleaser.yaml       # Release config
 ```
 
 ## License
