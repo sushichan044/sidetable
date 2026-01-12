@@ -24,7 +24,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
-    outputs: 
+    outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
