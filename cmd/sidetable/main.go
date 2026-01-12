@@ -43,8 +43,9 @@ func run(args []string, stdout, stderr io.Writer) error {
 	}
 
 	// Handle built-in commands: no args, help, version, list
+	// Pass only remaining args to avoid global flag interference with Cobra's flag parsing
 	if len(remaining) == 0 || isBuiltIn(remaining[0]) {
-		return executeBuiltin(args, stdout, stderr)
+		return executeBuiltin(remaining, stdout, stderr)
 	}
 
 	projectDir, err := os.Getwd()
