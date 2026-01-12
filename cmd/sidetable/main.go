@@ -39,7 +39,11 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return nil
 	}
 
-	if len(remaining) == 0 || isBuiltIn(remaining[0]) {
+	if
+	// $ <cmd>
+	len(remaining) == 0 ||
+		// $ <cmd> help, <cmd> version, <cmd> list ...
+		isBuiltIn(remaining[0]) {
 		return executeBuiltin(args, stdout, stderr)
 	}
 
