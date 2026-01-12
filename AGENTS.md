@@ -4,6 +4,14 @@ This file provides guidance to Coding Agents when working with code in this repo
 
 ---
 
+## Agent Guidelines
+
+- **Language**: English code/docs/comments
+- **Execution**: Test→Lint→Cleanup workflow
+- **Files**: Cleanup temp files after use
+- **Efficiency**: Parallel operations for independent tasks
+- **Path Handling**: You MUST treat all paths as relative to the cwd unless starts with `/` (root) or a drive letter (e.g., `C:\`).
+
 ## Quick Commands
 
 ```bash
@@ -23,7 +31,7 @@ go mod tidy                 # Clean up dependencies
 ## Project Context
 
 sidetable is a Go CLI tool for managing personal directories per project.
-See `docs/ai/SPEC.md` for detailed specifications ONLY IF NEEDED.
+See README.md for more details.
 
 ## Sources of Truth
 
