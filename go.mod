@@ -1,8 +1,6 @@
 module github.com/sushichan044/sidetable
 
-go 1.24.2
-
-toolchain go1.25.3
+go 1.25
 
 tool github.com/mfridman/tparse
 
@@ -34,5 +32,5 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/term v0.39.0 // indirect
+	golang.org/x/term v0.32.0 // indirect
 )
