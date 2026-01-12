@@ -43,3 +43,4 @@ Keep this file light. For implementation details, refer to:
 - use `cobra` for CLI framework. (built-in commands only; delegation is custom)
 - use `testify` for testing and assertions.
 - follow Go idioms and best practices.
+- Check code quality with `mise run fmt` and `mise run lint-fix` and `mise run test` before completing work.
