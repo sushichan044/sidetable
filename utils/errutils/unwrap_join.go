@@ -26,5 +26,5 @@ func UnwrapJoinError(err error) ([]error, bool) {
 		return we.Unwrap(), true
 	}
 
-	return nil, false
+	return []error{err}, true
 }

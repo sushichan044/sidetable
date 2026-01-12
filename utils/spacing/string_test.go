@@ -186,6 +186,10 @@ func TestFormatter_IncorrectColumnCount(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "incorrect column count")
+
+	// Verify both invalid rows are reported
+	assert.Contains(t, err.Error(), "[x]")
+	assert.Contains(t, err.Error(), "[y z extra]")
 }
 
 func TestFormatter_NoRows(t *testing.T) {
