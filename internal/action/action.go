@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"text/template"
 
@@ -15,15 +14,9 @@ import (
 )
 
 var (
-	ErrArgsPlaceholderMissing  = errors.New("args placeholder missing")
-	ErrArgsPlaceholderMultiple = errors.New("args placeholder appears multiple times")
-	ErrArgsPlaceholderWithText = errors.New("args placeholder must be standalone")
 	ErrCommandTemplateEmpty    = errors.New("command template resolved to empty")
 	ErrCommandTemplateHasSpace = errors.New("command template contains spaces")
 )
-
-var argsPlaceholder = regexp.MustCompile(`^{{\s*\.Args\s*}}$`)
-var argsPlaceholderAny = regexp.MustCompile(`{{\s*\.Args\s*}}`)
 
 // Action is a resolved delegated command.
 type Action struct {
@@ -50,7 +43,6 @@ func Build(cfg *config.Config, name string, userArgs []string, projectDir string
 		PrivateDir: privateDir,
 		CommandDir: commandDir,
 		ConfigDir:  cfg.ConfigDir,
-		Args:       userArgs,
 	}
 
 	resolvedCmd, err := evalTemplate(cmd.Command, ctx)
@@ -107,7 +99,6 @@ type templateContext struct {
 	PrivateDir string
 	CommandDir string
 	ConfigDir  string
-	Args       []string
 }
 
 func evalTemplate(raw string, ctx templateContext) (string, error) {
@@ -122,34 +113,29 @@ func evalTemplate(raw string, ctx templateContext) (string, error) {
 	return b.String(), nil
 }
 
-func buildArgs(configArgs []string, userArgs []string, ctx templateContext) ([]string, error) {
-	if configArgs == nil {
-		return userArgs, nil
+func buildArgs(configArgs config.Args, userArgs []string, ctx templateContext) ([]string, error) {
+	prepend, err := buildArgList(configArgs.Prepend, ctx)
+	if err != nil {
+		return nil, err
+	}
+	appendArgs, err := buildArgList(configArgs.Append, ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	placeholderCount := 0
-	for _, raw := range configArgs {
-		if argsPlaceholderAny.MatchString(raw) {
-			if !argsPlaceholder.MatchString(raw) {
-				return nil, ErrArgsPlaceholderWithText
-			}
-			placeholderCount++
-		}
-	}
+	result := make([]string, 0, len(prepend)+len(userArgs)+len(appendArgs))
+	result = append(result, prepend...)
+	result = append(result, userArgs...)
+	result = append(result, appendArgs...)
+	return result, nil
+}
 
-	switch {
-	case placeholderCount > 1:
-		return nil, ErrArgsPlaceholderMultiple
-	case placeholderCount == 0 && len(userArgs) > 0:
-		return nil, ErrArgsPlaceholderMissing
+func buildArgList(args []string, ctx templateContext) ([]string, error) {
+	if len(args) == 0 {
+		return nil, nil
 	}
-
-	result := make([]string, 0, len(configArgs)+len(userArgs))
-	for _, raw := range configArgs {
-		if argsPlaceholder.MatchString(raw) {
-			result = append(result, userArgs...)
-			continue
-		}
+	result := make([]string, 0, len(args))
+	for _, raw := range args {
 		resolved, err := evalTemplate(raw, ctx)
 		if err != nil {
 			return nil, err

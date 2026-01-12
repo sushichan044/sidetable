@@ -10,13 +10,16 @@ import (
 	"github.com/sushichan044/sidetable/internal/config"
 )
 
-func TestBuildArgsExpansion(t *testing.T) {
+func TestBuildArgsPrependAppend(t *testing.T) {
 	cfg := &config.Config{
 		Directory: ".private",
 		Commands: map[string]config.Command{
 			"tool": {
 				Command: "tool",
-				Args:    []string{"-a", "{{.Args}}", "-b"},
+				Args: config.Args{
+					Prepend: []string{"-a"},
+					Append:  []string{"-b"},
+				},
 			},
 		},
 	}
@@ -26,19 +29,22 @@ func TestBuildArgsExpansion(t *testing.T) {
 	require.Equal(t, []string{"-a", "x", "y", "-b"}, spec.Args)
 }
 
-func TestBuildArgsMissingPlaceholder(t *testing.T) {
+func TestBuildArgsPrependOnly(t *testing.T) {
 	cfg := &config.Config{
 		Directory: ".private",
 		Commands: map[string]config.Command{
 			"tool": {
 				Command: "tool",
-				Args:    []string{"-a"},
+				Args: config.Args{
+					Prepend: []string{"-a"},
+				},
 			},
 		},
 	}
 
-	_, err := action.Build(cfg, "tool", []string{"x"}, t.TempDir())
-	require.Error(t, err)
+	spec, err := action.Build(cfg, "tool", []string{"x"}, t.TempDir())
+	require.NoError(t, err)
+	require.Equal(t, []string{"-a", "x"}, spec.Args)
 }
 
 func TestBuildArgsNoArgsSpecified(t *testing.T) {
@@ -54,34 +60,22 @@ func TestBuildArgsNoArgsSpecified(t *testing.T) {
 	require.Equal(t, []string{"x"}, spec.Args)
 }
 
-func TestBuildArgsPlaceholderTwice(t *testing.T) {
+func TestBuildArgsAppendOnly(t *testing.T) {
 	cfg := &config.Config{
 		Directory: ".private",
 		Commands: map[string]config.Command{
 			"tool": {
 				Command: "tool",
-				Args:    []string{"{{.Args}}", "{{.Args}}"},
+				Args: config.Args{
+					Append: []string{"-b"},
+				},
 			},
 		},
 	}
 
-	_, err := action.Build(cfg, "tool", []string{"x"}, t.TempDir())
-	require.Error(t, err)
-}
-
-func TestBuildArgsPlaceholderWithText(t *testing.T) {
-	cfg := &config.Config{
-		Directory: ".private",
-		Commands: map[string]config.Command{
-			"tool": {
-				Command: "tool",
-				Args:    []string{"prefix-{{.Args}}"},
-			},
-		},
-	}
-
-	_, err := action.Build(cfg, "tool", []string{"x"}, t.TempDir())
-	require.Error(t, err)
+	spec, err := action.Build(cfg, "tool", []string{"x"}, t.TempDir())
+	require.NoError(t, err)
+	require.Equal(t, []string{"x", "-b"}, spec.Args)
 }
 
 func TestTemplateEvaluation(t *testing.T) {
@@ -93,7 +87,7 @@ func TestTemplateEvaluation(t *testing.T) {
 		Commands: map[string]config.Command{
 			"tool": {
 				Command:     "{{.CommandDir}}",
-				Args:        []string{"--root={{.PrivateDir}}"},
+				Args:        config.Args{Append: []string{"--root={{.PrivateDir}}"}},
 				Env:         map[string]string{"ROOT": "{{.ProjectDir}}", "CONFIG": "{{.ConfigDir}}"},
 				Description: "{{.CommandDir}}",
 			},

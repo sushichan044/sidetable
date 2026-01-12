@@ -34,7 +34,10 @@ commands:
   ghq:
     command: "ghq"
     args:
-      - "{{.Args}}"
+      prepend:
+        - "--root={{.CommandDir}}"
+      append:
+        - "get"
     env:
       GHQ_ROOT: ".sushichan044/ghq"
     description: "ghq wrapper"
@@ -50,7 +53,9 @@ commands:
 #### commands.<name>
 
 - `command` (required): 委譲先の実行ファイル名を Go template で組み立てる文字列。
-- `args` (optional): 追加の引数を Go template で組み立てる配列。
+- `args` (optional): 追加の引数を Go template で組み立てる設定。
+  - `args.prepend`: userArgs の前に追加する配列。
+  - `args.append`: userArgs の後に追加する配列。
   - 何も指定していない場合は `sidetable <subcmd> ...` の `...` 部分をそのまま引き渡す。
 - `env` (optional): 追加/上書きする環境変数の map。
 - `description` (optional): `list` コマンドで表示する説明。
@@ -68,7 +73,6 @@ commands:
 - `.PrivateDir`: `.ProjectDir/<directory>`（絶対パス）
 - `.CommandDir`: `.PrivateDir/<commandName>`（絶対パス）
 - `.ConfigDir`: `config.yml` が存在するディレクトリ（絶対パス）
-- `.Args`: ユーザー入力引数の配列
 
 例:
 
@@ -77,7 +81,8 @@ commands:
   ghq:
     command: "ghq"
     args:
-      - "{{.Args}}"
+      prepend:
+        - "get"
     env:
       GHQ_ROOT: "{{.CommandDir}}"
       CONFIG_DIR: "{{.ConfigDir}}"
@@ -118,14 +123,8 @@ commands:
 
 - `command` をテンプレート評価し、実行ファイル名として利用する。
 - `args` が指定されている場合:
-  - `args` の各要素をテンプレート評価する。
-  - `{{.Args}}` はテンプレート中で利用できる.
-    - `["arg1", "arg2", "{{.Args}}", "arg3"]` の場合、`["arg1", "arg2", <userArgs...>, "arg3"]` に展開される。
-      - `{{.Args}}` は展開時にスライス展開されるということ
-  - `{{.Args}}` の使用は `args` 全体で **1回まで** とする。
-  - `{{.Args}}` が `args` 内に存在しない場合:
-    - `userArgs` が空ならそのまま実行
-    - `userArgs` が非空ならエラー
+  - `args.prepend` / `args.append` の各要素をテンプレート評価する。
+  - 実行引数は `prepend + userArgs + append` の順で組み立てる。
 - `args` が指定されていない場合:
   - `exec.Command(command, userArgs...)` として実行する。
 

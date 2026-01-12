@@ -35,10 +35,16 @@ type Config struct {
 // Command represents a delegated command configuration.
 type Command struct {
 	Command     string            `yaml:"command"`
-	Args        []string          `yaml:"args"`
+	Args        Args              `yaml:"args"`
 	Env         map[string]string `yaml:"env"`
 	Description string            `yaml:"description"`
 	Alias       string            `yaml:"alias"`
+}
+
+// Args represents user-arg injection configuration.
+type Args struct {
+	Prepend []string `yaml:"prepend"`
+	Append  []string `yaml:"append"`
 }
 
 const configDirEnv = "SIDETABLE_CONFIG_DIR"

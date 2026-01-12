@@ -20,20 +20,18 @@
 
 - **Do not** execute through a shell; use `exec.Command`.
 - `command` is a **required** executable name (no spaces).
-- `argv` is optional; build the final argv list by:
-  1) `command` (evaluated from template)
-  2) `argv` (each element template-evaluated)
-  3) `userArgs` (only when allowed)
-- If `argv` **does not contain** `{{.Args}}` and `userArgs` is non-empty, return an error.
-- If `argv` **contains** `{{.Args}}`, replace it with `userArgs` and **flatten** into the argv list.
-- `{{.Args}}` can appear **at most once** in `argv`.
+- `args` is optional; build the final argv list by:
+  1. `command` (evaluated from template)
+  2. `args.prepend` (each element template-evaluated)
+  3. `userArgs`
+  4. `args.append` (each element template-evaluated)
 
 ## 4) Template evaluation
 
 - Evaluate templates per **string element** (`command`, each `argv` item, each `env` value, `description`).
 - Use `missingkey=error`.
 - Template variables (see SPEC):
-  - `.ProjectDir`, `.PrivateDir`, `.CommandDir`, `.ConfigDir`, `.Args`
+  - `.ProjectDir`, `.PrivateDir`, `.CommandDir`, `.ConfigDir`
 
 ## 5) Validation tips
 
