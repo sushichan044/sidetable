@@ -146,6 +146,7 @@ func newDoctorCommand(cwd string) *cobra.Command {
 				return errors.Join(errs...)
 			}
 
+			fmt.Fprintln(cmd.OutOrStdout(), "✅  no issues found")
 			return nil
 		},
 	}
