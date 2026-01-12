@@ -53,12 +53,12 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	spec, err := project.BuildSpec(remaining[0], remaining[1:])
+	action, err := project.BuildAction(remaining[0], remaining[1:])
 	if err != nil {
 		return err
 	}
 
-	return project.Execute(spec)
+	return project.Execute(action)
 }
 
 func parseGlobalFlags(args []string) (string, bool, bool, []string, error) {

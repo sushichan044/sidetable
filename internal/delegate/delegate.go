@@ -25,8 +25,8 @@ var (
 var argsPlaceholder = regexp.MustCompile(`^{{\s*\.Args\s*}}$`)
 var argsPlaceholderAny = regexp.MustCompile(`{{\s*\.Args\s*}}`)
 
-// Spec is a resolved delegated command.
-type Spec struct {
+// Action is a resolved delegated command.
+type Action struct {
 	Command    string
 	Args       []string
 	Env        []string
@@ -36,7 +36,7 @@ type Spec struct {
 }
 
 // Build resolves command/args/env based on config.
-func Build(cfg *config.Config, name string, userArgs []string, projectDir string) (*Spec, error) {
+func Build(cfg *config.Config, name string, userArgs []string, projectDir string) (*Action, error) {
 	cmdName, cmd, err := cfg.ResolveCommand(name)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func Build(cfg *config.Config, name string, userArgs []string, projectDir string
 		return nil, err
 	}
 
-	return &Spec{
+	return &Action{
 		Command:    resolvedCmd,
 		Args:       resolvedArgs,
 		Env:        env,
@@ -84,7 +84,7 @@ func Build(cfg *config.Config, name string, userArgs []string, projectDir string
 }
 
 // Execute runs the delegated command and returns its exit code.
-func Execute(spec *Spec) error {
+func Execute(spec *Action) error {
 	// #nosec G204 -- command/args are from user-owned config; explicit delegation is intended.
 	cmd := exec.CommandContext(context.Background(), spec.Command, spec.Args...)
 	cmd.Env = spec.Env

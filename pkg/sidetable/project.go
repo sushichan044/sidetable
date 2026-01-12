@@ -15,8 +15,8 @@ type CommandInfo struct {
 	Description string
 }
 
-// Spec is a resolved delegated command.
-type Spec struct {
+// Action is a resolved delegated command.
+type Action struct {
 	Command    string
 	Args       []string
 	Env        []string
@@ -73,8 +73,8 @@ func (p *Project) ListCommands() ([]CommandInfo, error) {
 	return result, nil
 }
 
-// BuildSpec resolves the delegated command spec for the given name and args.
-func (p *Project) BuildSpec(name string, userArgs []string) (*Spec, error) {
+// BuildAction resolves the delegated command spec for the given name and args.
+func (p *Project) BuildAction(name string, userArgs []string) (*Action, error) {
 	if p == nil || p.config == nil {
 		return nil, errors.New("project is not initialized")
 	}
@@ -82,45 +82,45 @@ func (p *Project) BuildSpec(name string, userArgs []string) (*Spec, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fromDelegateSpec(spec), nil
+	return fromDelegateAction(spec), nil
 }
 
 // Execute runs the delegated command.
-func (p *Project) Execute(spec *Spec) error {
+func (p *Project) Execute(action *Action) error {
 	if p == nil {
 		return errors.New("project is not initialized")
 	}
-	if spec == nil {
+	if action == nil {
 		return errors.New("spec is nil")
 	}
-	return delegate.Execute(toDelegateSpec(spec))
+	return delegate.Execute(toDelegateAction(action))
 }
 
-func fromDelegateSpec(spec *delegate.Spec) *Spec {
-	if spec == nil {
+func fromDelegateAction(action *delegate.Action) *Action {
+	if action == nil {
 		return nil
 	}
-	return &Spec{
-		Command:    spec.Command,
-		Args:       spec.Args,
-		Env:        spec.Env,
-		ProjectDir: spec.ProjectDir,
-		PrivateDir: spec.PrivateDir,
-		CommandDir: spec.CommandDir,
+	return &Action{
+		Command:    action.Command,
+		Args:       action.Args,
+		Env:        action.Env,
+		ProjectDir: action.ProjectDir,
+		PrivateDir: action.PrivateDir,
+		CommandDir: action.CommandDir,
 	}
 }
 
-func toDelegateSpec(spec *Spec) *delegate.Spec {
-	if spec == nil {
+func toDelegateAction(action *Action) *delegate.Action {
+	if action == nil {
 		return nil
 	}
-	return &delegate.Spec{
-		Command:    spec.Command,
-		Args:       spec.Args,
-		Env:        spec.Env,
-		ProjectDir: spec.ProjectDir,
-		PrivateDir: spec.PrivateDir,
-		CommandDir: spec.CommandDir,
+	return &delegate.Action{
+		Command:    action.Command,
+		Args:       action.Args,
+		Env:        action.Env,
+		ProjectDir: action.ProjectDir,
+		PrivateDir: action.PrivateDir,
+		CommandDir: action.CommandDir,
 	}
 }
 
