@@ -101,7 +101,7 @@ func (p *Project) Execute(act *action.Action) error {
 		return errors.New("project is not initialized")
 	}
 	if act == nil {
-		return errors.New("spec is nil")
+		return errors.New("action is nil")
 	}
 	return action.Execute(act)
 }
@@ -112,12 +112,4 @@ func (p *Project) ProjectDir() string {
 		return ""
 	}
 	return p.projectDir
-}
-
-// SetProjectDir sets the project directory for this Project.
-func (p *Project) SetProjectDir(projectDir string) {
-	if p == nil {
-		return
-	}
-	p.projectDir = projectDir
 }
