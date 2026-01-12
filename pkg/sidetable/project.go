@@ -4,8 +4,8 @@ import (
 	"errors"
 	"os"
 
+	"github.com/sushichan044/sidetable/internal/action"
 	"github.com/sushichan044/sidetable/internal/config"
-	"github.com/sushichan044/sidetable/internal/delegate"
 )
 
 // CommandInfo represents a resolved command entry.
@@ -64,11 +64,11 @@ func (p *Project) ListCommands() ([]CommandInfo, error) {
 }
 
 // BuildAction resolves the delegated command spec for the given name and args.
-func (p *Project) BuildAction(name string, userArgs []string) (*delegate.Action, error) {
+func (p *Project) BuildAction(name string, userArgs []string) (*action.Action, error) {
 	if p == nil || p.config == nil {
 		return nil, errors.New("project is not initialized")
 	}
-	spec, err := delegate.Build(p.config, name, userArgs, p.projectDir)
+	spec, err := action.Build(p.config, name, userArgs, p.projectDir)
 	if err != nil {
 		return nil, err
 	}
@@ -76,14 +76,14 @@ func (p *Project) BuildAction(name string, userArgs []string) (*delegate.Action,
 }
 
 // Execute runs the delegated command.
-func (p *Project) Execute(action *delegate.Action) error {
+func (p *Project) Execute(act *action.Action) error {
 	if p == nil {
 		return errors.New("project is not initialized")
 	}
-	if action == nil {
+	if act == nil {
 		return errors.New("spec is nil")
 	}
-	return delegate.Execute(action)
+	return action.Execute(act)
 }
 
 // ProjectDir returns the working project directory for this Project.
