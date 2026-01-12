@@ -158,7 +158,7 @@ Each string in `command`, `args`, `env`, and `description` is evaluated as a Go 
 | ------------- | ---------------------------------------------------------- |
 | `.ProjectDir` | current directory when running `sidetable` (absolute path) |
 | `.PrivateDir` | `.ProjectDir/<directory>` (absolute path)                  |
-| `.CommandDir` | `.PrivateDir/<commandName>` (absolute path)                |
+| `.CommandDir` | `.ProjectDir/<directory>/<commandName>` (absolute path)    |
 | `.ConfigDir`  | directory containing `config.yml` (absolute path)          |
 
 ### Argument injection rules
