@@ -33,7 +33,7 @@
 - Evaluate templates per **string element** (`command`, each `argv` item, each `env` value, `description`).
 - Use `missingkey=error`.
 - Template variables (see SPEC):
-  - `.ProjectDir`, `.PrivateDir`, `.CommandDir`, `.Args`
+  - `.ProjectDir`, `.PrivateDir`, `.CommandDir`, `.ConfigDir`, `.Args`
 
 ## 5) Validation tips
 

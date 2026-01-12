@@ -27,8 +27,9 @@ var (
 
 // Config represents configuration file structure.
 type Config struct {
-	Directory string             `yaml:"directory"`
+	Directory string             `yaml:"directory"` // User's private directory per project
 	Commands  map[string]Command `yaml:"commands"`
+	ConfigDir string             `yaml:"-"` // INTERNAL: Directory of the loaded config file
 }
 
 // Command represents a delegated command configuration.
@@ -75,6 +76,7 @@ func Load(path string) (*Config, error) {
 	if err = yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
+	cfg.ConfigDir = filepath.Dir(filepath.Clean(path))
 
 	if err = cfg.Validate(); err != nil {
 		return nil, err

@@ -86,13 +86,15 @@ func TestBuildArgsPlaceholderWithText(t *testing.T) {
 
 func TestTemplateEvaluation(t *testing.T) {
 	projectDir := t.TempDir()
+	configDir := t.TempDir()
 	cfg := &config.Config{
 		Directory: ".private",
+		ConfigDir: configDir,
 		Commands: map[string]config.Command{
 			"tool": {
 				Command:     "{{.CommandDir}}",
 				Args:        []string{"--root={{.PrivateDir}}"},
-				Env:         map[string]string{"ROOT": "{{.ProjectDir}}"},
+				Env:         map[string]string{"ROOT": "{{.ProjectDir}}", "CONFIG": "{{.ConfigDir}}"},
 				Description: "{{.CommandDir}}",
 			},
 		},
@@ -103,6 +105,7 @@ func TestTemplateEvaluation(t *testing.T) {
 	require.Equal(t, filepath.Join(projectDir, ".private", "tool"), spec.Command)
 	require.Equal(t, []string{"--root=" + filepath.Join(projectDir, ".private")}, spec.Args)
 	require.Contains(t, spec.Env, "ROOT="+projectDir)
+	require.Contains(t, spec.Env, "CONFIG="+configDir)
 }
 
 func TestCommandValidationAfterTemplate(t *testing.T) {

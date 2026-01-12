@@ -47,7 +47,13 @@ func (p *Project) ListCommands() ([]CommandInfo, error) {
 	result := make([]CommandInfo, 0, len(p.config.Commands))
 	for _, name := range p.config.CommandNames() {
 		commandCfg := p.config.Commands[name]
-		desc, err := renderDescription(commandCfg.Description, p.projectDir, p.config.Directory, name)
+		desc, err := renderDescription(
+			commandCfg.Description,
+			p.projectDir,
+			p.config.Directory,
+			name,
+			p.config.ConfigDir,
+		)
 		if err != nil {
 			return nil, err
 		}

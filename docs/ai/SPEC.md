@@ -67,6 +67,7 @@ commands:
 - `.ProjectDir`: `sidetable` 実行時のカレントディレクトリ（絶対パス）
 - `.PrivateDir`: `.ProjectDir/<directory>`（絶対パス）
 - `.CommandDir`: `.PrivateDir/<commandName>`（絶対パス）
+- `.ConfigDir`: `config.yml` が存在するディレクトリ（絶対パス）
 - `.Args`: ユーザー入力引数の配列
 
 例:
@@ -79,6 +80,7 @@ commands:
       - "{{.Args}}"
     env:
       GHQ_ROOT: "{{.CommandDir}}"
+      CONFIG_DIR: "{{.ConfigDir}}"
 ```
 
 ### 3.4 バリデーション

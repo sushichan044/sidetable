@@ -1,0 +1,7 @@
+directory: .sidetable
+
+commands:
+  ghq:
+    command: "{{.ConfigDir}}/ghq.sh"
+    env:
+      GHQ_ROOT: "{{.CommandDir}}"

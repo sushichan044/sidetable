@@ -49,6 +49,7 @@ func Build(cfg *config.Config, name string, userArgs []string, projectDir string
 		ProjectDir: projectDir,
 		PrivateDir: privateDir,
 		CommandDir: commandDir,
+		ConfigDir:  cfg.ConfigDir,
 		Args:       userArgs,
 	}
 
@@ -105,6 +106,7 @@ type templateContext struct {
 	ProjectDir string
 	PrivateDir string
 	CommandDir string
+	ConfigDir  string
 	Args       []string
 }
 

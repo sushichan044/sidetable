@@ -10,25 +10,27 @@ type templateContext struct {
 	ProjectDir string
 	PrivateDir string
 	CommandDir string
+	ConfigDir  string
 	Args       []string
 }
 
-func renderDescription(description, projectDir, privateDirName, commandName string) (string, error) {
+func renderDescription(description, projectDir, privateDirName, commandName, configDir string) (string, error) {
 	if description == "" {
 		return "", nil
 	}
 
-	ctx := delegateTemplateContext(projectDir, privateDirName, commandName)
+	ctx := delegateTemplateContext(projectDir, privateDirName, commandName, configDir)
 	return executeTemplate(description, ctx)
 }
 
-func delegateTemplateContext(projectDir, privateDirName, commandName string) templateContext {
+func delegateTemplateContext(projectDir, privateDirName, commandName, configDir string) templateContext {
 	privateDir := filepath.Join(projectDir, privateDirName)
 	commandDir := filepath.Join(privateDir, commandName)
 	return templateContext{
 		ProjectDir: projectDir,
 		PrivateDir: privateDir,
 		CommandDir: commandDir,
+		ConfigDir:  configDir,
 		Args:       nil,
 	}
 }
