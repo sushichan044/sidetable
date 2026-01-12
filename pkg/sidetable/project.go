@@ -15,16 +15,6 @@ type CommandInfo struct {
 	Description string
 }
 
-// Action is a resolved delegated command.
-type Action struct {
-	Command    string
-	Args       []string
-	Env        []string
-	ProjectDir string
-	PrivateDir string
-	CommandDir string
-}
-
 // Project provides API access to sidetable core logic.
 type Project struct {
 	config     *config.Config
@@ -74,7 +64,7 @@ func (p *Project) ListCommands() ([]CommandInfo, error) {
 }
 
 // BuildAction resolves the delegated command spec for the given name and args.
-func (p *Project) BuildAction(name string, userArgs []string) (*Action, error) {
+func (p *Project) BuildAction(name string, userArgs []string) (*delegate.Action, error) {
 	if p == nil || p.config == nil {
 		return nil, errors.New("project is not initialized")
 	}
@@ -82,46 +72,18 @@ func (p *Project) BuildAction(name string, userArgs []string) (*Action, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fromDelegateAction(spec), nil
+	return spec, nil
 }
 
 // Execute runs the delegated command.
-func (p *Project) Execute(action *Action) error {
+func (p *Project) Execute(action *delegate.Action) error {
 	if p == nil {
 		return errors.New("project is not initialized")
 	}
 	if action == nil {
 		return errors.New("spec is nil")
 	}
-	return delegate.Execute(toDelegateAction(action))
-}
-
-func fromDelegateAction(action *delegate.Action) *Action {
-	if action == nil {
-		return nil
-	}
-	return &Action{
-		Command:    action.Command,
-		Args:       action.Args,
-		Env:        action.Env,
-		ProjectDir: action.ProjectDir,
-		PrivateDir: action.PrivateDir,
-		CommandDir: action.CommandDir,
-	}
-}
-
-func toDelegateAction(action *Action) *delegate.Action {
-	if action == nil {
-		return nil
-	}
-	return &delegate.Action{
-		Command:    action.Command,
-		Args:       action.Args,
-		Env:        action.Env,
-		ProjectDir: action.ProjectDir,
-		PrivateDir: action.PrivateDir,
-		CommandDir: action.CommandDir,
-	}
+	return delegate.Execute(action)
 }
 
 // ProjectDir returns the working project directory for this Project.
