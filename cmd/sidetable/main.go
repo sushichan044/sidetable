@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/sushichan044/sidetable/internal/action"
 	"github.com/sushichan044/sidetable/pkg/sidetable"
@@ -28,82 +27,65 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) error {
-	showVersion, showHelp, remaining, err := parseGlobalFlags(args)
-	if err != nil {
-		return err
-	}
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
-	if showHelp {
-		return executeBuiltin([]string{"--help"}, stdout, stderr, cwd)
-	}
-
-	if showVersion {
-		return executeBuiltin([]string{"version"}, stdout, stderr, cwd)
-	}
-
-	// Handle built-in commands: no args, help, version, list
-	// Pass only remaining args to avoid global flag interference with Cobra's flag parsing
-	if len(remaining) == 0 || isBuiltIn(remaining[0]) {
-		return executeBuiltin(remaining, stdout, stderr, cwd)
-	}
-
-	project, err := sidetable.NewProject(cwd)
-	if err != nil {
-		return err
-	}
-
-	action, err := project.BuildAction(remaining[0], remaining[1:])
-	if err != nil {
-		return err
-	}
-
-	return project.Execute(action)
-}
-
-func parseGlobalFlags(args []string) (bool, bool, []string, error) {
-	fs := pflag.NewFlagSet("sidetable", pflag.ContinueOnError)
-	fs.SetInterspersed(false)
-	fs.SetOutput(io.Discard)
-	fs.ParseErrorsAllowlist.UnknownFlags = true
-
-	var showVersion bool
-	var showHelp bool
-	fs.BoolVarP(&showVersion, "version", "v", false, "show version")
-	fs.BoolVarP(&showHelp, "help", "h", false, "show help")
-
-	if err := fs.Parse(args); err != nil {
-		return false, false, nil, err
-	}
-
-	return showVersion, showHelp, fs.Args(), nil
-}
-
-func executeBuiltin(args []string, stdout, stderr io.Writer, cwd string) error {
 	root := newRootCommand(stdout, stderr, cwd)
 	root.SetArgs(args)
-	if err := root.Execute(); err != nil {
-		return err
-	}
-	return nil
+	return root.Execute()
 }
 
 func newRootCommand(stdout, stderr io.Writer, cwd string) *cobra.Command {
 	root := &cobra.Command{
-		Use:           "sidetable",
-		SilenceErrors: true,
-		SilenceUsage:  true,
+		Use:          "sidetable",
+		Short:        "Personal directory manager per project",
+		SilenceUsage: true,
+		Version:      version.Get(),
 	}
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
-	root.AddCommand(newListCommand(cwd))
 	root.AddCommand(newVersionCommand(stdout))
 
+	// Try to load project and add dynamic commands
+	// If project initialization fails, only built-in commands are available (graceful fallback)
+	project, err := sidetable.NewProject(cwd)
+	if err == nil {
+		root.AddCommand(newListCommand(project))
+		addDynamicCommands(root, project)
+	}
+
 	return root
+}
+
+func addDynamicCommands(root *cobra.Command, project *sidetable.Project) {
+	commands, err := project.ListCommands()
+	if err != nil {
+		return
+	}
+
+	for _, info := range commands {
+		subCmd := &cobra.Command{
+			Use:                info.Name,
+			Short:              info.Description,
+			DisableFlagParsing: true,
+			SilenceErrors:      true,
+			SilenceUsage:       true,
+			RunE: func(_ *cobra.Command, args []string) error {
+				act, buildErr := project.BuildAction(info.Name, args)
+				if buildErr != nil {
+					return buildErr
+				}
+				return project.Execute(act)
+			},
+		}
+		if info.Alias != "" {
+			subCmd.Aliases = []string{info.Alias}
+		}
+		root.AddCommand(subCmd)
+	}
 }
 
 func newVersionCommand(stdout io.Writer) *cobra.Command {
@@ -116,15 +98,11 @@ func newVersionCommand(stdout io.Writer) *cobra.Command {
 	}
 }
 
-func newListCommand(projectDir string) *cobra.Command {
+func newListCommand(project *sidetable.Project) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List available commands",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			project, err := sidetable.NewProject(projectDir)
-			if err != nil {
-				return err
-			}
 			commands, err := project.ListCommands()
 			if err != nil {
 				return err
@@ -138,14 +116,5 @@ func newListCommand(projectDir string) *cobra.Command {
 			}
 			return nil
 		},
-	}
-}
-
-func isBuiltIn(name string) bool {
-	switch name {
-	case "help", "list", "version":
-		return true
-	default:
-		return false
 	}
 }
