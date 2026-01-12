@@ -22,7 +22,7 @@ go mod tidy                 # Clean up dependencies
 
 ## Project Context
 
-sidetable is a Go CLI tool for manage personal directory per project.
+sidetable is a Go CLI tool for managing personal directories per project.
 See `docs/ai/SPEC.md` for detailed specifications ONLY IF NEEDED.
 
 ## Sources of Truth
@@ -36,3 +36,11 @@ Keep this file light. For implementation details, refer to:
 - Task runner and scripts: `mise.toml`
 - Lint/format rules: `.golangci.yml`
 - Release/build configuration: `.goreleaser.yaml`
+
+## Coding Standard
+
+- use `pflag` for CLI flag parsing.
+- use `cobra` for CLI framework. (built-in commands only; delegation is custom)
+- use `testify` for testing and assertions.
+- follow Go idioms and best practices.
+- Check code quality with `mise run fmt` and `mise run lint-fix` and `mise run test` before completing work.

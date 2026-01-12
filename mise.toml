@@ -2,6 +2,11 @@
 description = "Run the application in development mode"
 run = "go run ./cmd/sidetable"
 
+[tasks."dev:local"]
+run = "mise run dev"
+description = "Run the application with .config/sidetable configuration"
+env = { SIDETABLE_CONFIG_DIR = "{{config_root}}/.config/sidetable" }
+
 [tasks.lint]
 description = "Run golangci-lint"
 run = "golangci-lint run"

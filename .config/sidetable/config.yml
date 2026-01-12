@@ -1,0 +1,34 @@
+# Required. Sets the project-local private area name.
+# If sets to ".sidetable", the private area path is "./.sidetable"
+directory: ".sidetable"
+
+commands:
+  ghq:
+    # Required. Command name to execute.
+    command: "ghq"
+    # Optional. Arguments to pass to the command.
+    # If omitted, sidetable just runs `<command>` with user-provided args.
+    args:
+      # Arguments added before user-provided args.
+      prepend:
+        - "get"
+        - "-u"
+    env:
+      # You can use `{{.CommandDir}}` to get the command-local directory path.
+      # In this example, GHQ_ROOT is set to "./.sidetable/ghq"
+      GHQ_ROOT: "{{.CommandDir}}"
+    # Optional. Description shown in `sidetable list`.
+    description: "ghq wrapper with project-local root"
+    # Optional. Short alias for the command.
+    alias: "gg"
+
+  note:
+    # You can use `{{.ConfigDir}}` to get the configuration directory path.
+    # You can set your own shell scripts as command.
+    command: "{{.ConfigDir}}/vim-note.sh"
+    args:
+      # Optional. Arguments added after user-provided args.
+      append:
+        - "{{.CommandDir}}/note.md"
+    description: "Open project note file"
+    alias: "n"
