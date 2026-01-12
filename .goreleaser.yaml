@@ -33,7 +33,10 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
-
+    files:
+      - LICENSE*
+      - README*
+      - completions/*
 checksum:
   name_template: "checksums.txt"
 
@@ -57,3 +60,23 @@ release:
     ---
 
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+
+homebrew_casks:
+  - repository:
+      owner: sushichan044
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    commit_msg_template: "Brew cask update for {{ .ProjectName }} version {{ .Tag }}"
+    homepage: https://github.com/sushichan044/sidetable
+    completions:
+      bash: "completions/sidetable.bash"
+      zsh: "completions/sidetable.zsh"
+      fish: "completions/sidetable.fish"
+
+    description: A tool that helps manage a project-local private area.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/sidetable"]
+          end
