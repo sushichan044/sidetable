@@ -1,4 +1,4 @@
-package delegate
+package delegate_test
 
 import (
 	"path/filepath"
@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/sushichan044/sidetable/internal/config"
+	"github.com/sushichan044/sidetable/internal/delegate"
 )
 
 func TestBuildArgsExpansion(t *testing.T) {
@@ -20,7 +21,7 @@ func TestBuildArgsExpansion(t *testing.T) {
 		},
 	}
 
-	spec, err := Build(cfg, "tool", []string{"x", "y"}, t.TempDir())
+	spec, err := delegate.Build(cfg, "tool", []string{"x", "y"}, t.TempDir())
 	require.NoError(t, err)
 	require.Equal(t, []string{"-a", "x", "y", "-b"}, spec.Args)
 }
@@ -36,7 +37,7 @@ func TestBuildArgsMissingPlaceholder(t *testing.T) {
 		},
 	}
 
-	_, err := Build(cfg, "tool", []string{"x"}, t.TempDir())
+	_, err := delegate.Build(cfg, "tool", []string{"x"}, t.TempDir())
 	require.Error(t, err)
 }
 
@@ -48,7 +49,7 @@ func TestBuildArgsNoArgsSpecified(t *testing.T) {
 		},
 	}
 
-	spec, err := Build(cfg, "tool", []string{"x"}, t.TempDir())
+	spec, err := delegate.Build(cfg, "tool", []string{"x"}, t.TempDir())
 	require.NoError(t, err)
 	require.Equal(t, []string{"x"}, spec.Args)
 }
@@ -64,7 +65,7 @@ func TestBuildArgsPlaceholderTwice(t *testing.T) {
 		},
 	}
 
-	_, err := Build(cfg, "tool", []string{"x"}, t.TempDir())
+	_, err := delegate.Build(cfg, "tool", []string{"x"}, t.TempDir())
 	require.Error(t, err)
 }
 
@@ -79,7 +80,7 @@ func TestBuildArgsPlaceholderWithText(t *testing.T) {
 		},
 	}
 
-	_, err := Build(cfg, "tool", []string{"x"}, t.TempDir())
+	_, err := delegate.Build(cfg, "tool", []string{"x"}, t.TempDir())
 	require.Error(t, err)
 }
 
@@ -97,7 +98,7 @@ func TestTemplateEvaluation(t *testing.T) {
 		},
 	}
 
-	spec, err := Build(cfg, "tool", []string{}, projectDir)
+	spec, err := delegate.Build(cfg, "tool", []string{}, projectDir)
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(projectDir, ".private", "tool"), spec.Command)
 	require.Equal(t, []string{"--root=" + filepath.Join(projectDir, ".private")}, spec.Args)
@@ -115,6 +116,6 @@ func TestCommandValidationAfterTemplate(t *testing.T) {
 		},
 	}
 
-	_, err := Build(cfg, "tool", []string{}, projectDir)
+	_, err := delegate.Build(cfg, "tool", []string{}, projectDir)
 	require.Error(t, err)
 }

@@ -75,11 +75,11 @@ func Load(path string) (*Config, error) {
 	}
 
 	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
+	if err = yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
 
-	if err := cfg.Validate(); err != nil {
+	if err = cfg.Validate(); err != nil {
 		return nil, err
 	}
 

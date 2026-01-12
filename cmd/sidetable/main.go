@@ -16,12 +16,6 @@ import (
 	"github.com/sushichan044/sidetable/version"
 )
 
-var builtInCommands = map[string]struct{}{
-	"help":    {},
-	"list":    {},
-	"version": {},
-}
-
 func main() {
 	exitCode, err := run(os.Args[1:], os.Stdout, os.Stderr)
 	if err != nil {
@@ -83,7 +77,7 @@ func parseGlobalFlags(args []string) (string, bool, bool, []string, error) {
 	fs := pflag.NewFlagSet("sidetable", pflag.ContinueOnError)
 	fs.SetInterspersed(false)
 	fs.SetOutput(io.Discard)
-	fs.ParseErrorsWhitelist.UnknownFlags = true
+	fs.ParseErrorsAllowlist.UnknownFlags = true
 
 	var configPath string
 	var showVersion bool
@@ -131,7 +125,7 @@ func newVersionCommand(stdout io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Show version",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			fmt.Fprintln(stdout, version.Get())
 		},
 	}
@@ -141,7 +135,7 @@ func newListCommand(configPath *string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List available commands",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			path, err := resolveConfigPath(*configPath)
 			if err != nil {
 				return err
@@ -155,9 +149,10 @@ func newListCommand(configPath *string) *cobra.Command {
 				return err
 			}
 
+			var desc string
 			for _, name := range cfg.CommandNames() {
 				commandCfg := cfg.Commands[name]
-				desc, err := renderDescription(commandCfg.Description, projectDir, cfg.Directory, name)
+				desc, err = renderDescription(commandCfg.Description, projectDir, cfg.Directory, name)
 				if err != nil {
 					return err
 				}
@@ -206,8 +201,8 @@ func executeTemplate(raw string, ctx templateContext) (string, error) {
 		return "", err
 	}
 	var b strings.Builder
-	if err := tpl.Execute(&b, ctx); err != nil {
-		return "", err
+	if execErr := tpl.Execute(&b, ctx); execErr != nil {
+		return "", execErr
 	}
 	return b.String(), nil
 }
@@ -220,6 +215,10 @@ func resolveConfigPath(flagPath string) (string, error) {
 }
 
 func isBuiltIn(name string) bool {
-	_, ok := builtInCommands[name]
-	return ok
+	switch name {
+	case "help", "list", "version":
+		return true
+	default:
+		return false
+	}
 }

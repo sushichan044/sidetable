@@ -1,6 +1,7 @@
 package delegate
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -84,7 +85,8 @@ func Build(cfg *config.Config, name string, userArgs []string, projectDir string
 
 // Execute runs the delegated command and returns its exit code.
 func Execute(spec *Spec) int {
-	cmd := exec.Command(spec.Command, spec.Args...)
+	// #nosec G204 -- command/args are from user-owned config; explicit delegation is intended.
+	cmd := exec.CommandContext(context.Background(), spec.Command, spec.Args...)
 	cmd.Env = spec.Env
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -112,8 +114,8 @@ func evalTemplate(raw string, ctx templateContext) (string, error) {
 		return "", err
 	}
 	var b strings.Builder
-	if err := tpl.Execute(&b, ctx); err != nil {
-		return "", err
+	if execErr := tpl.Execute(&b, ctx); execErr != nil {
+		return "", execErr
 	}
 	return b.String(), nil
 }

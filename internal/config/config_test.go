@@ -1,4 +1,4 @@
-package config
+package config_test
 
 import (
 	"os"
@@ -7,14 +7,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/sushichan044/sidetable/internal/config"
 )
 
 func TestResolvePath(t *testing.T) {
 	base := t.TempDir()
-	require.NoError(t, os.Setenv("XDG_CONFIG_HOME", base))
-	t.Cleanup(func() {
-		require.NoError(t, os.Unsetenv("XDG_CONFIG_HOME"))
-	})
+	t.Setenv("XDG_CONFIG_HOME", base)
 
 	sidetableDir := filepath.Join(base, "sidetable")
 	require.NoError(t, os.MkdirAll(sidetableDir, 0o755))
@@ -24,7 +23,7 @@ func TestResolvePath(t *testing.T) {
 
 	t.Run("yaml only", func(t *testing.T) {
 		require.NoError(t, os.WriteFile(yamlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
-		path, err := ResolvePath()
+		path, err := config.ResolvePath()
 		require.NoError(t, err)
 		require.YAMLEq(t, yamlPath, path)
 		require.NoError(t, os.Remove(yamlPath))
@@ -32,7 +31,7 @@ func TestResolvePath(t *testing.T) {
 
 	t.Run("yml only", func(t *testing.T) {
 		require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
-		path, err := ResolvePath()
+		path, err := config.ResolvePath()
 		require.NoError(t, err)
 		require.YAMLEq(t, ymlPath, path)
 		require.NoError(t, os.Remove(ymlPath))
@@ -41,23 +40,23 @@ func TestResolvePath(t *testing.T) {
 	t.Run("both exist", func(t *testing.T) {
 		require.NoError(t, os.WriteFile(yamlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 		require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
-		_, err := ResolvePath()
+		_, err := config.ResolvePath()
 		require.Error(t, err)
 		require.NoError(t, os.Remove(yamlPath))
 		require.NoError(t, os.Remove(ymlPath))
 	})
 
 	t.Run("missing", func(t *testing.T) {
-		_, err := ResolvePath()
+		_, err := config.ResolvePath()
 		require.Error(t, err)
 	})
 }
 
 func TestValidate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		cfg := &Config{
+		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]Command{
+			Commands: map[string]config.Command{
 				"ghq": {Command: "ghq"},
 			},
 		}
@@ -65,7 +64,7 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("missing directory", func(t *testing.T) {
-		cfg := &Config{Commands: map[string]Command{"a": {Command: "a"}}}
+		cfg := &config.Config{Commands: map[string]config.Command{"a": {Command: "a"}}}
 		require.Error(t, cfg.Validate())
 	})
 
@@ -74,38 +73,38 @@ func TestValidate(t *testing.T) {
 		if runtime.GOOS == "windows" {
 			abs = "C:\\abs"
 		}
-		cfg := &Config{
+		cfg := &config.Config{
 			Directory: abs,
-			Commands:  map[string]Command{"a": {Command: "a"}},
+			Commands:  map[string]config.Command{"a": {Command: "a"}},
 		}
 		require.Error(t, cfg.Validate())
 	})
 
 	t.Run("missing commands", func(t *testing.T) {
-		cfg := &Config{Directory: ".private"}
+		cfg := &config.Config{Directory: ".private"}
 		require.Error(t, cfg.Validate())
 	})
 
 	t.Run("empty command", func(t *testing.T) {
-		cfg := &Config{
+		cfg := &config.Config{
 			Directory: ".private",
-			Commands:  map[string]Command{"a": {Command: ""}},
+			Commands:  map[string]config.Command{"a": {Command: ""}},
 		}
 		require.Error(t, cfg.Validate())
 	})
 
 	t.Run("command with spaces", func(t *testing.T) {
-		cfg := &Config{
+		cfg := &config.Config{
 			Directory: ".private",
-			Commands:  map[string]Command{"a": {Command: "bad cmd"}},
+			Commands:  map[string]config.Command{"a": {Command: "bad cmd"}},
 		}
 		require.Error(t, cfg.Validate())
 	})
 
 	t.Run("alias duplicate", func(t *testing.T) {
-		cfg := &Config{
+		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]Command{
+			Commands: map[string]config.Command{
 				"a": {Command: "a", Alias: "x"},
 				"b": {Command: "b", Alias: "x"},
 			},
@@ -114,9 +113,9 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("alias collides with command", func(t *testing.T) {
-		cfg := &Config{
+		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]Command{
+			Commands: map[string]config.Command{
 				"a": {Command: "a", Alias: "b"},
 				"b": {Command: "b"},
 			},
@@ -126,9 +125,9 @@ func TestValidate(t *testing.T) {
 }
 
 func TestResolveCommandName(t *testing.T) {
-	cfg := &Config{
+	cfg := &config.Config{
 		Directory: ".private",
-		Commands: map[string]Command{
+		Commands: map[string]config.Command{
 			"a": {Command: "a", Alias: "x"},
 			"b": {Command: "b"},
 		},
