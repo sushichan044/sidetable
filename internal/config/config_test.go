@@ -167,3 +167,56 @@ func TestResolveCommandName(t *testing.T) {
 	_, _, err = cfg.ResolveCommand("missing")
 	require.Error(t, err)
 }
+
+func TestLoad_ParsesYAML(t *testing.T) {
+	base := t.TempDir()
+	path := filepath.Join(base, "config.yml")
+
+	content := `
+directory: .private
+commands:
+  ghq:
+    command: ghq
+    description: "ghq wrapper"
+    alias: q
+    env:
+      A: a
+      B: b
+    args:
+      prepend: ["-l"]
+      append:
+        - "-v"
+`
+	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+
+	cfg, err := config.Load(path)
+	require.NoError(t, err)
+
+	require.Equal(t, ".private", cfg.Directory)
+	require.Equal(t, filepath.Dir(path), cfg.ConfigDir)
+
+	cmd, ok := cfg.Commands["ghq"]
+	require.True(t, ok)
+	require.Equal(t, "ghq", cmd.Command)
+	require.Equal(t, "q", cmd.Alias)
+	require.Equal(t, "ghq wrapper", cmd.Description)
+	require.Equal(t, map[string]string{"A": "a", "B": "b"}, cmd.Env)
+	require.ElementsMatch(t, []string{"-l"}, cmd.Args.Prepend)
+	require.ElementsMatch(t, []string{"-v"}, cmd.Args.Append)
+}
+
+func TestLoad_InvalidYAML(t *testing.T) {
+	base := t.TempDir()
+	path := filepath.Join(base, "config.yml")
+
+	// commands should be a mapping; provide a list to force unmarshal error
+	bad := `
+directory: .private
+commands:
+  - name: bad
+`
+	require.NoError(t, os.WriteFile(path, []byte(bad), 0o644))
+
+	_, err := config.Load(path)
+	require.Error(t, err)
+}
