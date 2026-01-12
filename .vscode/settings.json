@@ -20,5 +20,19 @@
   "go.formatTool": "custom",
   "go.lintFlags": ["--config=${workspaceFolder}/.golangci.yml"],
   "go.lintTool": "golangci-lint",
-  "go.useLanguageServer": true
+  "go.useLanguageServer": true,
+  "chat.tools.terminal.autoApprove": {
+    "mise run fmt": {
+      "approve": true
+    },
+    "mise run lint": {
+      "approve": true
+    },
+    "mise run lint-fix": {
+      "approve": true
+    },
+    "mise run test": {
+      "approve": true
+    }
+  }
 }
