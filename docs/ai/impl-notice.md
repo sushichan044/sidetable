@@ -2,7 +2,7 @@
 
 ## 1) Argument parsing and delegation
 
-- Parse **only global flags** first (e.g., `--config`, `--version`, `--help`) and leave the rest untouched.
+- Parse **only global flags** first (e.g., `--version`, `--help`) and leave the rest untouched.
   - Use `pflag` (or equivalent) with **unknown flags allowed** to avoid breaking delegated commands.
 - After global parsing:
   - If the first token is a **built-in subcommand** (`list`, `help`, `version`), route to the CLI framework.
@@ -11,9 +11,10 @@
 
 ## 2) Config path resolution
 
-- Default config path: `XDG_CONFIG_HOME/sidetable/config.{yml,yaml}`.
+- Default config path: `SIDETABLE_CONFIG_DIR/config.{yml,yaml}`.
+- If `SIDETABLE_CONFIG_DIR` is unset, use `XDG_CONFIG_HOME/sidetable`.
 - If `XDG_CONFIG_HOME` is unset, use `~/.config`.
-- This repo already has `internal/xdg` for this.
+- This repo already has `internal/xdg` for the fallback.
 
 ## 3) Command execution model
 

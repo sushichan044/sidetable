@@ -21,7 +21,7 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) error {
-	configPath, showVersion, showHelp, remaining, err := parseGlobalFlags(args)
+	showVersion, showHelp, remaining, err := parseGlobalFlags(args)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	project, err := sidetable.NewProject(configPath, projectDir)
+	project, err := sidetable.NewProject(projectDir)
 	if err != nil {
 		return err
 	}
@@ -61,24 +61,22 @@ func run(args []string, stdout, stderr io.Writer) error {
 	return project.Execute(action)
 }
 
-func parseGlobalFlags(args []string) (string, bool, bool, []string, error) {
+func parseGlobalFlags(args []string) (bool, bool, []string, error) {
 	fs := pflag.NewFlagSet("sidetable", pflag.ContinueOnError)
 	fs.SetInterspersed(false)
 	fs.SetOutput(io.Discard)
 	fs.ParseErrorsAllowlist.UnknownFlags = true
 
-	var configPath string
 	var showVersion bool
 	var showHelp bool
-	fs.StringVarP(&configPath, "config", "c", "", "config path")
 	fs.BoolVarP(&showVersion, "version", "v", false, "show version")
 	fs.BoolVarP(&showHelp, "help", "h", false, "show help")
 
 	if err := fs.Parse(args); err != nil {
-		return "", false, false, nil, err
+		return false, false, nil, err
 	}
 
-	return configPath, showVersion, showHelp, fs.Args(), nil
+	return showVersion, showHelp, fs.Args(), nil
 }
 
 func executeBuiltin(args []string, stdout, stderr io.Writer) error {
@@ -91,8 +89,6 @@ func executeBuiltin(args []string, stdout, stderr io.Writer) error {
 }
 
 func newRootCommand(stdout, stderr io.Writer) *cobra.Command {
-	var configPath string
-
 	root := &cobra.Command{
 		Use:           "sidetable",
 		SilenceErrors: true,
@@ -101,9 +97,7 @@ func newRootCommand(stdout, stderr io.Writer) *cobra.Command {
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 
-	root.PersistentFlags().StringVarP(&configPath, "config", "c", "", "config path")
-
-	root.AddCommand(newListCommand(&configPath))
+	root.AddCommand(newListCommand())
 	root.AddCommand(newVersionCommand(stdout))
 
 	return root
@@ -119,7 +113,7 @@ func newVersionCommand(stdout io.Writer) *cobra.Command {
 	}
 }
 
-func newListCommand(configPath *string) *cobra.Command {
+func newListCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List available commands",
@@ -128,7 +122,7 @@ func newListCommand(configPath *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			project, err := sidetable.NewProject(*configPath, projectDir)
+			project, err := sidetable.NewProject(projectDir)
 			if err != nil {
 				return err
 			}

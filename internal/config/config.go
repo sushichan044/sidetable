@@ -41,16 +41,24 @@ type Command struct {
 	Alias       string            `yaml:"alias"`
 }
 
-// ResolvePath returns the config path resolved from XDG_CONFIG_HOME.
+const configDirEnv = "SIDETABLE_CONFIG_DIR"
+
+// ResolvePath returns the config path resolved from SIDETABLE_CONFIG_DIR or XDG_CONFIG_HOME.
 func ResolvePath() (string, error) {
+	if dir := os.Getenv(configDirEnv); dir != "" {
+		return resolvePathFromDir(dir)
+	}
 	cfgHome, err := xdg.ConfigHome()
 	if err != nil {
 		return "", err
 	}
+	return resolvePathFromDir(filepath.Join(cfgHome, "sidetable"))
+}
 
-	dir := filepath.Join(cfgHome, "sidetable")
-	yamlPath := filepath.Join(dir, "config.yaml")
-	ymlPath := filepath.Join(dir, "config.yml")
+func resolvePathFromDir(dir string) (string, error) {
+	cleanDir := filepath.Clean(dir)
+	yamlPath := filepath.Join(cleanDir, "config.yaml")
+	ymlPath := filepath.Join(cleanDir, "config.yml")
 
 	yamlExists := fileExists(yamlPath)
 	ymlExists := fileExists(ymlPath)

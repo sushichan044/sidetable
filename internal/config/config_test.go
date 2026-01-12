@@ -13,13 +13,12 @@ import (
 
 func TestResolvePath(t *testing.T) {
 	base := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", base)
+	envDir := filepath.Join(base, "env")
+	require.NoError(t, os.MkdirAll(envDir, 0o755))
+	t.Setenv("SIDETABLE_CONFIG_DIR", envDir)
 
-	sidetableDir := filepath.Join(base, "sidetable")
-	require.NoError(t, os.MkdirAll(sidetableDir, 0o755))
-
-	yamlPath := filepath.Join(sidetableDir, "config.yaml")
-	ymlPath := filepath.Join(sidetableDir, "config.yml")
+	yamlPath := filepath.Join(envDir, "config.yaml")
+	ymlPath := filepath.Join(envDir, "config.yml")
 
 	t.Run("yaml only", func(t *testing.T) {
 		require.NoError(t, os.WriteFile(yamlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
@@ -50,6 +49,46 @@ func TestResolvePath(t *testing.T) {
 		_, err := config.ResolvePath()
 		require.Error(t, err)
 	})
+}
+
+func TestResolvePathPrefersEnvDir(t *testing.T) {
+	base := t.TempDir()
+	envDir := filepath.Join(base, "env")
+	xdgHome := filepath.Join(base, "xdg")
+	xdgDir := filepath.Join(xdgHome, "sidetable")
+
+	require.NoError(t, os.MkdirAll(envDir, 0o755))
+	require.NoError(t, os.MkdirAll(xdgDir, 0o755))
+
+	t.Setenv("SIDETABLE_CONFIG_DIR", envDir)
+	t.Setenv("XDG_CONFIG_HOME", xdgHome)
+
+	envPath := filepath.Join(envDir, "config.yaml")
+	xdgPath := filepath.Join(xdgDir, "config.yaml")
+
+	require.NoError(t, os.WriteFile(envPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
+	require.NoError(t, os.WriteFile(xdgPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
+
+	path, err := config.ResolvePath()
+	require.NoError(t, err)
+	require.YAMLEq(t, envPath, path)
+}
+
+func TestResolvePathFallbackXDG(t *testing.T) {
+	base := t.TempDir()
+	xdgHome := filepath.Join(base, "xdg")
+	xdgDir := filepath.Join(xdgHome, "sidetable")
+	require.NoError(t, os.MkdirAll(xdgDir, 0o755))
+
+	t.Setenv("SIDETABLE_CONFIG_DIR", "")
+	t.Setenv("XDG_CONFIG_HOME", xdgHome)
+
+	yamlPath := filepath.Join(xdgDir, "config.yaml")
+	require.NoError(t, os.WriteFile(yamlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
+
+	path, err := config.ResolvePath()
+	require.NoError(t, err)
+	require.YAMLEq(t, yamlPath, path)
 }
 
 func TestValidate(t *testing.T) {

@@ -22,8 +22,8 @@ type Project struct {
 }
 
 // NewProject loads config and prepares a project context.
-func NewProject(configPath string, projectDir string) (*Project, error) {
-	path, err := ResolveConfigPath(configPath)
+func NewProject(projectDir string) (*Project, error) {
+	path, err := ResolveConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -35,10 +35,7 @@ func NewProject(configPath string, projectDir string) (*Project, error) {
 }
 
 // ResolveConfigPath resolves the config path with default search.
-func ResolveConfigPath(flagPath string) (string, error) {
-	if flagPath != "" {
-		return flagPath, nil
-	}
+func ResolveConfigPath() (string, error) {
 	return config.ResolvePath()
 }
 

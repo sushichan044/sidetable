@@ -16,7 +16,8 @@
 
 ### 3.1 パス解決
 
-- 設定ファイルは `XDG_CONFIG_HOME/sidetable/config.{yml,yaml}`。
+- 設定ファイルは `SIDETABLE_CONFIG_DIR/config.{yml,yaml}`。
+  - `SIDETABLE_CONFIG_DIR` が未設定の場合は `XDG_CONFIG_HOME/sidetable` を利用する。
   - `XDG_CONFIG_HOME` が未設定の場合は `~/.config` を利用する。
   - 拡張子は `yml` または `yaml` のみ許容する。
   - 両方存在する場合はエラーとする。
@@ -92,7 +93,6 @@ commands:
 
 ### 4.1 グローバルフラグ
 
-- `--config`: 読み込む設定ファイルのパスを指定する。
 - `--version`: バージョン表示。
 - `--help`: ヘルプ表示。
 
