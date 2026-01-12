@@ -32,6 +32,19 @@ func (e *ExitError) Unwrap() error {
 	return e.Err
 }
 
+func ExtractExitError(err error) *ExitError {
+	if err == nil {
+		return nil
+	}
+
+	// NOTE: use error.AsType after Go 1.26 released
+	var exitErr *ExitError
+	if errors.As(err, &exitErr) {
+		return exitErr
+	}
+	return nil
+}
+
 // Action is a resolved delegated command.
 type Action struct {
 	Command    string

@@ -8,31 +8,24 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sushichan044/sidetable/internal/action"
 	"github.com/sushichan044/sidetable/pkg/sidetable"
 	"github.com/sushichan044/sidetable/version"
 )
 
 func main() {
-	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
-		var exitErr *action.ExitError
-		// NOTE: use error.AsType after Go 1.26 released
-		if errors.As(err, &exitErr) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		os.Exit(1)
+	}
+
+	root := newRootCommand(os.Stdout, os.Stderr, cwd)
+	root.SetArgs(os.Args[1:])
+	if cliErr := root.Execute(); cliErr != nil {
+		if exitErr := sidetable.ExtractExitError(cliErr); exitErr != nil {
 			os.Exit(exitErr.Code)
 		}
 		os.Exit(1)
 	}
-}
-
-func run(args []string, stdout, stderr io.Writer) error {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	root := newRootCommand(stdout, stderr, cwd)
-	root.SetArgs(args)
-	return root.Execute()
 }
 
 func newRootCommand(stdout, stderr io.Writer, cwd string) *cobra.Command {

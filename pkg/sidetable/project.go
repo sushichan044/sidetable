@@ -56,6 +56,11 @@ func ResolveConfigPath() (string, error) {
 	return config.ResolvePath()
 }
 
+// ExtractExitError extracts ExitError from the given error if possible.
+func ExtractExitError(err error) *action.ExitError {
+	return action.ExtractExitError(err)
+}
+
 // ListCommands returns resolved command entries with descriptions.
 func (p *Project) ListCommands() ([]CommandInfo, error) {
 	if p == nil || p.config == nil {
