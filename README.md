@@ -4,13 +4,31 @@
 
 You define subcommands in a config file and can execute arbitrary commands as `sidetable <subcmd> ...`. This lets you standardize project-specific directory layouts and tool settings, and seamlessly integrate external tools (e.g. [x-motemen/ghq](https://github.com/x-motemen/ghq)).
 
-## Features
+<!-- TOC -->
 
-- **Command integration**: Run subcommands defined in the config as external commands
-- **Template expansion**: Dynamic generation of commands, args, and env vars with Go templates
-- **Aliases**: Optional short aliases for subcommands
-- **Project context**: Auto-resolve project and private directory paths
-- **Transparent execution**: Fully preserves stdout/stderr and exit codes
+- [sidetable](#sidetable)
+  - [Installation](#installation)
+    - [Using Homebrew (macOS/Linux)](#using-homebrew-macoslinux)
+    - [Using mise](#using-mise)
+    - [Using `go install`](#using-go-install)
+    - [Download binary](#download-binary)
+  - [Usage](#usage)
+    - [Basic usage](#basic-usage)
+    - [Example: integrate with ghq](#example-integrate-with-ghq)
+  - [Configuration](#configuration)
+    - [Location](#location)
+    - [Basic example](#basic-example)
+    - [Template variables](#template-variables)
+    - [Argument injection rules](#argument-injection-rules)
+  - [Development](#development)
+    - [Requirements](#requirements)
+    - [Quick commands](#quick-commands)
+    - [Standard Go commands](#standard-go-commands)
+    - [Project structure](#project-structure)
+  - [License](#license)
+  - [Contributing](#contributing)
+
+<!-- /TOC -->
 
 ## Installation
 
@@ -22,7 +40,7 @@ brew install --cask sushichan044/tap/sidetable
 
 ### Using [mise](https://mise.jdx.dev/)
 
-  ```bash
+```bash
 mise install github:sushichan044/sidetable
 ```
 
@@ -35,6 +53,56 @@ go install github.com/sushichan044/sidetable/cmd/sidetable@latest
 ### Download binary
 
 You can download the latest release binaries from [Releases](https://github.com/sushichan044/sidetable/releases).
+
+## Usage
+
+### Basic usage
+
+```bash
+# List commands
+$ sidetable list
+example        An example command
+
+# Run a command.
+$ sidetable example arg1 arg2
+
+# Show help
+$ sidetable --help
+$ sidetable help
+
+# Show version
+$ sidetable --version
+$ sidetable version
+```
+
+### Example: integrate with [ghq](https://github.com/x-motemen/ghq)
+
+Example configuration for project-local Git repository management:
+
+```yaml
+directory: ".local"
+
+commands:
+  ghq:
+    command: "ghq"
+    args:
+      prepend:
+        - "get"
+    env:
+      GHQ_ROOT: "{{.CommandDir}}" # See Configuration section for details
+    description: "Manage repositories in project-local directory"
+    alias: "q"
+```
+
+Example:
+
+```bash
+$ cd ~/myproject
+$ sidetable ghq https://github.com/example/repo
+# Or you can use alias: `sidetable q https://github.com/example/repo`
+#
+# => cloned into ~/myproject/.local/ghq/github.com/example/repo
+```
 
 ## Configuration
 
@@ -57,6 +125,7 @@ commands:
     # Required. Command name to execute.
     command: "ghq"
     # Optional. Arguments to pass to the command.
+    # If omitted, sidetable just runs `<command>` with user-provided args.
     args:
       # Arguments added before user-provided args.
       prepend:
@@ -81,29 +150,7 @@ commands:
         - "{{.CommandDir}}/note.md"
     description: "Open project note file"
     alias: "n"
-
 ```
-
-### Format
-
-#### Top-level
-
-- `directory` (**required**): directory name of the project-local private area (relative path)
-  - Example: `.sushichan044`
-  - Resolved as a path relative to the current directory
-
-#### `commands.<name>`
-
-Fields for each command:
-
-- `command` (**required**): command name to execute (Go template allowed)
-- `args` (optional): argument injection settings (Go template allowed)
-  - `args.prepend`: list of arguments added before user-provided args
-  - `args.append`: list of arguments added after user-provided args
-  - If omitted, user-provided arguments are passed through as-is
-- `env` (optional): additional or overriding environment variables (key-value map)
-- `description` (optional): description shown in `sidetable list`
-- `alias` (optional): a short alias for the command (up to one)
 
 ### Template variables
 
@@ -116,7 +163,7 @@ Each string in `command`, `args`, `env`, and `description` is evaluated as a Go 
 | `.CommandDir` | `.PrivateDir/<commandName>` (absolute path)                |
 | `.ConfigDir`  | directory containing `config.yml` (absolute path)          |
 
-#### Argument injection rules
+### Argument injection rules
 
 `args.prepend` and `args.append` are evaluated as templates, then combined as:
 
@@ -140,109 +187,6 @@ commands:
 ```bash
 $ sidetable example arg1 arg2
 # Executed command: mycommand --flag arg1 arg2 --output=result.txt
-```
-
-### Validation
-
-The config file is validated with these rules:
-
-- `directory` is required (absolute paths are not allowed; must be relative)
-- `commands` is required (at least one command)
-- Each command must have a `command` field
-- `command` must not contain spaces, tabs, or newlines
-- `alias` must be unique
-- `alias` must not conflict with existing command names
-
-## Usage
-
-### Basic usage
-
-```bash
-# List commands
-$ sidetable list
-ghq (q) ghq wrapper with project-local root
-note Open project note
-
-# Run a command by alias
-$ sidetable q get https://github.com/example/repo
-
-# Run a command by full name
-$ sidetable ghq list
-
-# Show help
-$ sidetable --help
-$ sidetable help
-
-# Show version
-$ sidetable --version
-$ sidetable version
-```
-
-### Example: integrate with ghq
-
-Example configuration for project-local Git repository management:
-
-```yaml
-directory: ".local"
-
-commands:
-  ghq:
-    command: "ghq"
-    args:
-      prepend:
-        - "get"
-    env:
-      GHQ_ROOT: "{{.CommandDir}}"
-    description: "Manage repositories in project-local directory"
-    alias: "q"
-```
-
-Example:
-
-```bash
-$ cd ~/myproject
-$ sidetable q get https://github.com/example/repo
-# => cloned into ~/myproject/.local/ghq/github.com/example/repo
-
-$ sidetable q list
-github.com/example/repo
-```
-
-### Example: integrate with direnv
-
-Example configuration to manage project-local environment variables:
-
-```yaml
-directory: ".private"
-
-commands:
-  env:
-    command: "direnv"
-    args:
-      prepend:
-        - "allow"
-    env:
-      DIRENV_CONFIG: "{{.CommandDir}}"
-    description: "Manage project-local environment variables"
-```
-
-## Commands
-
-### Built-in commands
-
-| Command   | Description                                          |
-| --------- | ---------------------------------------------------- |
-| `list`    | Show the list of commands defined in the config file |
-| `version` | Show version info                                    |
-| `help`    | Show help message                                    |
-
-### Custom commands
-
-Commands defined in `config.yml` are added dynamically. You can run them by command name or alias.
-
-```bash
-sidetable <command-name> [args...]
-sidetable <alias> [args...]
 ```
 
 ## Development

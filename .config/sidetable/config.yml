@@ -1,10 +1,13 @@
-directory: .sidetable
+# Required. Sets the project-local private area name.
+# If sets to ".sidetable", the private area path is "./.sidetable"
+directory: ".sidetable"
 
 commands:
   ghq:
     # Required. Command name to execute.
     command: "ghq"
     # Optional. Arguments to pass to the command.
+    # If omitted, sidetable just runs `<command>` with user-provided args.
     args:
       # Arguments added before user-provided args.
       prepend:
