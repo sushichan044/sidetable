@@ -11,7 +11,6 @@ type templateContext struct {
 	PrivateDir string
 	CommandDir string
 	ConfigDir  string
-	Args       []string
 }
 
 func renderDescription(description, projectDir, privateDirName, commandName, configDir string) (string, error) {
@@ -31,7 +30,6 @@ func delegateTemplateContext(projectDir, privateDirName, commandName, configDir 
 		PrivateDir: privateDir,
 		CommandDir: commandDir,
 		ConfigDir:  configDir,
-		Args:       nil,
 	}
 }
 
