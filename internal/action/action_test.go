@@ -1,6 +1,7 @@
 package action_test
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 
@@ -115,4 +116,154 @@ func TestCommandValidationAfterTemplate(t *testing.T) {
 
 	_, err := action.Build(cfg, "tool", []string{}, projectDir)
 	require.Error(t, err)
+}
+
+func TestExitError(t *testing.T) {
+	t.Run("Error", func(t *testing.T) {
+		err := &action.ExitError{Code: 1}
+		require.Equal(t, "command exited with code 1", err.Error())
+	})
+
+	t.Run("Unwrap", func(t *testing.T) {
+		innerErr := errors.New("inner error")
+		err := &action.ExitError{Code: 1, Err: innerErr}
+		require.Equal(t, innerErr, err.Unwrap())
+	})
+}
+
+func TestExecute(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		spec := &action.Action{
+			Command: "echo",
+			Args:    []string{"hello"},
+		}
+		err := action.Execute(spec)
+		require.NoError(t, err)
+	})
+
+	t.Run("exit_code", func(t *testing.T) {
+		spec := &action.Action{
+			Command: "sh",
+			Args:    []string{"-c", "exit 42"},
+		}
+		err := action.Execute(spec)
+		require.Error(t, err)
+		var exitErr *action.ExitError
+		require.ErrorAs(t, err, &exitErr)
+		require.Equal(t, 42, exitErr.Code)
+	})
+
+	t.Run("command_not_found", func(t *testing.T) {
+		spec := &action.Action{
+			Command: "nonexistent_command_that_does_not_exist_12345",
+			Args:    []string{},
+		}
+		err := action.Execute(spec)
+		require.Error(t, err)
+	})
+}
+
+func TestBuildWithTemplateErrors(t *testing.T) {
+	projectDir := t.TempDir()
+
+	t.Run("empty_command", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"tool": {Command: "  "},
+			},
+		}
+		_, err := action.Build(cfg, "tool", []string{}, projectDir)
+		require.ErrorIs(t, err, action.ErrCommandTemplateEmpty)
+	})
+
+	t.Run("invalid_template_in_command", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"tool": {Command: "{{.Invalid}}"},
+			},
+		}
+		_, err := action.Build(cfg, "tool", []string{}, projectDir)
+		require.Error(t, err)
+	})
+
+	t.Run("invalid_template_in_args", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"tool": {
+					Command: "tool",
+					Args:    config.Args{Prepend: []string{"{{.Invalid}}"}},
+				},
+			},
+		}
+		_, err := action.Build(cfg, "tool", []string{}, projectDir)
+		require.Error(t, err)
+	})
+
+	t.Run("invalid_template_in_env", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"tool": {
+					Command: "tool",
+					Env:     map[string]string{"KEY": "{{.Invalid}}"},
+				},
+			},
+		}
+		_, err := action.Build(cfg, "tool", []string{}, projectDir)
+		require.Error(t, err)
+	})
+}
+
+func TestBuildEnvMerge(t *testing.T) {
+	projectDir := t.TempDir()
+
+	t.Run("override_existing", func(t *testing.T) {
+		t.Setenv("TEST_VAR", "original")
+
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"tool": {
+					Command: "tool",
+					Env:     map[string]string{"TEST_VAR": "overridden"},
+				},
+			},
+		}
+
+		spec, err := action.Build(cfg, "tool", []string{}, projectDir)
+		require.NoError(t, err)
+		require.Contains(t, spec.Env, "TEST_VAR=overridden")
+	})
+
+	t.Run("add_new_variable", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"tool": {
+					Command: "tool",
+					Env:     map[string]string{"NEW_VAR": "value"},
+				},
+			},
+		}
+
+		spec, err := action.Build(cfg, "tool", []string{}, projectDir)
+		require.NoError(t, err)
+		require.Contains(t, spec.Env, "NEW_VAR=value")
+	})
+
+	t.Run("no_env_specified", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"tool": {Command: "tool"},
+			},
+		}
+
+		spec, err := action.Build(cfg, "tool", []string{}, projectDir)
+		require.NoError(t, err)
+		require.NotEmpty(t, spec.Env)
+	})
 }
