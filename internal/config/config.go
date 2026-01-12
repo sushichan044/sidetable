@@ -14,8 +14,7 @@ import (
 )
 
 var (
-	ErrConfigNotFound       = errors.New("config file not found")
-	ErrConfigBothExist      = errors.New("config.yml and config.yaml both exist")
+	ErrConfigNotFound       = errors.New("config.yml file not found")
 	ErrCommandNotFound      = errors.New("command not found")
 	ErrCommandsMissing      = errors.New("commands is required")
 	ErrDirectoryMissing     = errors.New("directory is required")
@@ -57,22 +56,12 @@ func ResolvePath() (string, error) {
 
 func resolvePathFromDir(dir string) (string, error) {
 	cleanDir := filepath.Clean(dir)
-	yamlPath := filepath.Join(cleanDir, "config.yaml")
 	ymlPath := filepath.Join(cleanDir, "config.yml")
 
-	yamlExists := fileExists(yamlPath)
-	ymlExists := fileExists(ymlPath)
-
-	switch {
-	case yamlExists && ymlExists:
-		return "", ErrConfigBothExist
-	case yamlExists:
-		return yamlPath, nil
-	case ymlExists:
+	if ymlExists := fileExists(ymlPath); ymlExists {
 		return ymlPath, nil
-	default:
-		return "", ErrConfigNotFound
 	}
+	return "", fmt.Errorf("%w: looked for %q", ErrConfigNotFound, ymlPath)
 }
 
 // Load reads and validates config from path.
