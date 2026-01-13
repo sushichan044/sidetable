@@ -19,3 +19,9 @@ updates:
     commit-message:
       prefix: "chore"
       include: scope
+    groups:
+      "actions-minor-patch":
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
