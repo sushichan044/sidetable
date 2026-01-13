@@ -15,6 +15,7 @@ You define subcommands in a config file and can execute arbitrary commands as `s
   - [Usage](#usage)
     - [Basic usage](#basic-usage)
     - [Example: integrate with ghq](#example-integrate-with-ghq)
+    - [Shell Completion](#shell-completion)
   - [Configuration](#configuration)
     - [Location](#location)
     - [Basic example](#basic-example)
@@ -100,6 +101,25 @@ $ sidetable ghq https://github.com/example/repo
 # Or you can use alias: `sidetable q https://github.com/example/repo`
 #
 # => cloned into ~/myproject/.local/ghq/github.com/example/repo
+```
+
+### Shell Completion
+
+You can enable shell completion for `sidetable` commands.
+This includes completion for subcommands defined in your config file.
+
+```bash
+# For bash
+source <(sidetable completion bash)
+
+# For zsh
+source <(sidetable completion zsh)
+
+# For fish
+sidetable completion fish | source
+
+# For PowerShell
+sidetable completion powershell | Out-String | Invoke-Expression
 ```
 
 ## Configuration
