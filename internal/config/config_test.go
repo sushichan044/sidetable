@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/sushichan044/sidetable/internal/config"
@@ -154,17 +155,21 @@ func TestResolveCommandName(t *testing.T) {
 		},
 	}
 
-	name, cmd, err := cfg.ResolveCommand("a")
+	resolved, err := cfg.ResolveCommand("a")
 	require.NoError(t, err)
-	require.Equal(t, "a", name)
-	require.Equal(t, "a", cmd.Command)
+	require.Equal(t, "a", resolved.Name)
+	require.Equal(t, "a", resolved.Command.Command)
+	require.Empty(t, resolved.AliasName)
+	require.Nil(t, resolved.AliasArgs)
 
-	name, cmd, err = cfg.ResolveCommand("x")
+	resolved, err = cfg.ResolveCommand("x")
 	require.NoError(t, err)
-	require.Equal(t, "a", name)
-	require.Equal(t, "a", cmd.Command)
+	require.Equal(t, "a", resolved.Name)
+	require.Equal(t, "a", resolved.Command.Command)
+	require.Equal(t, "x", resolved.AliasName)
+	require.Nil(t, resolved.AliasArgs)
 
-	_, _, err = cfg.ResolveCommand("missing")
+	_, err = cfg.ResolveCommand("missing")
 	require.Error(t, err)
 }
 
@@ -219,4 +224,81 @@ commands:
 
 	_, err := config.Load(path)
 	require.Error(t, err)
+}
+
+func TestResolveCommandWithAliasInfo(t *testing.T) {
+	cfg := &config.Config{
+		Directory: ".test",
+		Commands: map[string]config.Command{
+			"ghq": {
+				Command: "ghq",
+				Alias:   "gg",
+			},
+			"foo": {
+				Command: "foo-bin",
+			},
+		},
+	}
+
+	tests := []struct {
+		name          string
+		inputName     string
+		wantName      string
+		wantAlias     string
+		wantCommand   string
+		wantAliasArgs *config.Args
+		wantErr       error
+	}{
+		{
+			name:          "resolve by direct command name",
+			inputName:     "ghq",
+			wantName:      "ghq",
+			wantAlias:     "",
+			wantCommand:   "ghq",
+			wantAliasArgs: nil,
+			wantErr:       nil,
+		},
+		{
+			name:          "resolve by alias name",
+			inputName:     "gg",
+			wantName:      "ghq",
+			wantAlias:     "gg",
+			wantCommand:   "ghq",
+			wantAliasArgs: nil,
+			wantErr:       nil,
+		},
+		{
+			name:          "command without alias",
+			inputName:     "foo",
+			wantName:      "foo",
+			wantAlias:     "",
+			wantCommand:   "foo-bin",
+			wantAliasArgs: nil,
+			wantErr:       nil,
+		},
+		{
+			name:      "command not found",
+			inputName: "unknown",
+			wantErr:   config.ErrCommandNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resolved, err := cfg.ResolveCommand(tt.inputName)
+
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				require.Nil(t, resolved)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, resolved)
+			assert.Equal(t, tt.wantName, resolved.Name)
+			assert.Equal(t, tt.wantAlias, resolved.AliasName)
+			assert.Equal(t, tt.wantCommand, resolved.Command.Command)
+			assert.Equal(t, tt.wantAliasArgs, resolved.AliasArgs)
+		})
+	}
 }
