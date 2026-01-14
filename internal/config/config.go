@@ -47,6 +47,16 @@ type Args struct {
 	Append  []string `yaml:"append"`
 }
 
+// ResolvedCommand represents a fully resolved command with optional alias information.
+type ResolvedCommand struct {
+	Name    string
+	Command Command
+	// The name of the alias used to invoke this command, if any.
+	// Empty if invoked by the original command name.
+	AliasName string
+	AliasArgs *Args
+}
+
 const configDirEnv = "SIDETABLE_CONFIG_DIR"
 
 // ResolvePath returns the config path resolved from SIDETABLE_CONFIG_DIR or XDG_CONFIG_HOME.
@@ -127,16 +137,26 @@ func (c *Config) Validate() error {
 }
 
 // ResolveCommand resolves command by name or alias.
-func (c *Config) ResolveCommand(name string) (string, Command, error) {
+func (c *Config) ResolveCommand(name string) (*ResolvedCommand, error) {
 	if cmd, ok := c.Commands[name]; ok {
-		return name, cmd, nil
+		return &ResolvedCommand{
+			Name:      name,
+			Command:   cmd,
+			AliasName: "",
+			AliasArgs: nil,
+		}, nil
 	}
 	for cmdName, cmd := range c.Commands {
 		if cmd.Alias == name {
-			return cmdName, cmd, nil
+			return &ResolvedCommand{
+				Name:      cmdName,
+				Command:   cmd,
+				AliasName: name,
+				AliasArgs: nil,
+			}, nil
 		}
 	}
-	return "", Command{}, ErrCommandNotFound
+	return nil, ErrCommandNotFound
 }
 
 // CommandNames returns sorted command names.

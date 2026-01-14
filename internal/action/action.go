@@ -57,13 +57,14 @@ type Action struct {
 
 // Build resolves command/args/env based on config.
 func Build(cfg *config.Config, name string, userArgs []string, projectDir string) (*Action, error) {
-	cmdName, cmd, err := cfg.ResolveCommand(name)
+	resolved, err := cfg.ResolveCommand(name)
 	if err != nil {
 		return nil, err
 	}
 
+	cmd := resolved.Command
 	privateDir := filepath.Join(projectDir, cfg.Directory)
-	commandDir := filepath.Join(privateDir, cmdName)
+	commandDir := filepath.Join(privateDir, resolved.Name)
 
 	ctx := templateContext{
 		ProjectDir: projectDir,
@@ -83,7 +84,7 @@ func Build(cfg *config.Config, name string, userArgs []string, projectDir string
 		return nil, ErrCommandTemplateHasSpace
 	}
 
-	resolvedArgs, err := buildArgs(cmd.Args, userArgs, ctx)
+	resolvedArgs, err := buildArgsWithAlias(cmd.Args, resolved.AliasArgs, userArgs, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -143,20 +144,43 @@ func evalTemplate(raw string, ctx templateContext) (string, error) {
 	return b.String(), nil
 }
 
-func buildArgs(configArgs config.Args, userArgs []string, ctx templateContext) ([]string, error) {
-	prepend, err := buildArgList(configArgs.Prepend, ctx)
-	if err != nil {
-		return nil, err
-	}
-	appendArgs, err := buildArgList(configArgs.Append, ctx)
-	if err != nil {
-		return nil, err
+func buildArgsWithAlias(
+	commandArgs config.Args,
+	aliasArgs *config.Args,
+	userArgs []string,
+	ctx templateContext,
+) ([]string, error) {
+	var aliasPrepend, aliasAppend []string
+	var err error
+
+	if aliasArgs != nil {
+		aliasPrepend, err = buildArgList(aliasArgs.Prepend, ctx)
+		if err != nil {
+			return nil, fmt.Errorf("alias prepend: %w", err)
+		}
+		aliasAppend, err = buildArgList(aliasArgs.Append, ctx)
+		if err != nil {
+			return nil, fmt.Errorf("alias append: %w", err)
+		}
 	}
 
-	result := make([]string, 0, len(prepend)+len(userArgs)+len(appendArgs))
-	result = append(result, prepend...)
+	commandPrepend, err := buildArgList(commandArgs.Prepend, ctx)
+	if err != nil {
+		return nil, fmt.Errorf("command prepend: %w", err)
+	}
+	commandAppend, err := buildArgList(commandArgs.Append, ctx)
+	if err != nil {
+		return nil, fmt.Errorf("command append: %w", err)
+	}
+
+	totalLen := len(aliasPrepend) + len(commandPrepend) + len(userArgs) + len(commandAppend) + len(aliasAppend)
+	result := make([]string, 0, totalLen)
+	result = append(result, aliasPrepend...)
+	result = append(result, commandPrepend...)
 	result = append(result, userArgs...)
-	result = append(result, appendArgs...)
+	result = append(result, commandAppend...)
+	result = append(result, aliasAppend...)
+
 	return result, nil
 }
 
