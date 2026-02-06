@@ -97,9 +97,9 @@ func (f *Formatter) AddRows(rows ...[]string) error {
 	return nil
 }
 
-// Format writes the formatted output to the provided writer.
+// Println writes the formatted output to the provided writer.
 // Each row is aligned according to the column specifications and spacing requirements.
-func (f *Formatter) Format(output io.Writer) error {
+func (f *Formatter) Println(output io.Writer) error {
 	if len(f.rows) == 0 {
 		return nil
 	}

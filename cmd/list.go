@@ -54,8 +54,7 @@ The output shows command name, alias, and description for each configured comman
 			return fmtErr
 		}
 
-		return formatter.Format(cmd.OutOrStdout())
-
+		return formatter.Println(cmd.OutOrStdout())
 	},
 }
 

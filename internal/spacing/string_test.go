@@ -29,7 +29,7 @@ func TestFormatter_BasicUsage(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = formatter.Format(&buf)
+	err = formatter.Println(&buf)
 	require.NoError(t, err)
 
 	expected := strings.TrimSpace(`
@@ -61,7 +61,7 @@ func TestFormatter_MultiByteCharacters(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = formatter.Format(&buf)
+	err = formatter.Println(&buf)
 	require.NoError(t, err)
 
 	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
@@ -88,7 +88,7 @@ func TestFormatter_NoTrailingSpaces(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = formatter.Format(&buf)
+	err = formatter.Println(&buf)
 	require.NoError(t, err)
 
 	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
@@ -112,7 +112,7 @@ func TestFormatter_NoSpacingBetweenConsecutiveColumns(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = formatter.Format(&buf)
+	err = formatter.Println(&buf)
 	require.NoError(t, err)
 
 	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
@@ -140,7 +140,7 @@ func TestFormatter_SingleColumn(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = formatter.Format(&buf)
+	err = formatter.Println(&buf)
 	require.NoError(t, err)
 
 	expected := "first\nsecond\n"
@@ -157,7 +157,7 @@ func TestFormatter_EmptyRows(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = formatter.Format(&buf)
+	err = formatter.Println(&buf)
 	require.NoError(t, err)
 
 	// Don't trim the buffer - we want to preserve leading spaces on each line
@@ -196,7 +196,7 @@ func TestFormatter_NoRows(t *testing.T) {
 	formatter := spacing.NewFormatter(spacing.Column(), spacing.MinSpacing(2), spacing.Column())
 
 	var buf bytes.Buffer
-	err := formatter.Format(&buf)
+	err := formatter.Println(&buf)
 	require.NoError(t, err)
 
 	assert.Empty(t, buf.String())
@@ -216,7 +216,7 @@ func TestFormatter_ZeroMinSpacing(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = formatter.Format(&buf)
+	err = formatter.Println(&buf)
 	require.NoError(t, err)
 
 	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
@@ -241,7 +241,7 @@ func TestFormatter_NegativeMinSpacing(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = formatter.Format(&buf)
+	err = formatter.Println(&buf)
 	require.NoError(t, err)
 
 	assert.Equal(t, "ab\n", buf.String())
@@ -264,7 +264,7 @@ func TestFormatter_MixedWidthCharacters(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = formatter.Format(&buf)
+	err = formatter.Println(&buf)
 	require.NoError(t, err)
 
 	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
