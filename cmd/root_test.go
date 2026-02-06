@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 
+	"github.com/sushichan044/sidetable"
 	"github.com/sushichan044/sidetable/internal/action"
-	"github.com/sushichan044/sidetable/pkg/sidetable"
 )
 
 func TestDetermineExitCode(t *testing.T) {

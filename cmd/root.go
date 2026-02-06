@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sushichan044/sidetable/pkg/sidetable"
+	"github.com/sushichan044/sidetable"
 	"github.com/sushichan044/sidetable/version"
 )
 
