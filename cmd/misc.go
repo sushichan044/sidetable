@@ -1,10 +1,9 @@
-package main
+package cmd
 
 var (
-	//nolint:gochecknoglobals // This is necessary
 	builtinCommands = map[string]struct{}{
 		"list":       {},
-		"completion": {},
+		"completion": {}, // defined by cobra
 		"doctor":     {},
 	}
 )
