@@ -4,6 +4,7 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -22,7 +23,12 @@ var rootCmd = &cobra.Command{
 
 // Execute executes the root command and returns the exit code.
 func Execute() int {
-	injectUserDefinedCommands()
+	if err := injectUserDefinedCommands(); err != nil {
+		fmt.Fprintln(
+			os.Stderr,
+			"Error occurred while loading user-defined commands. Run `sidetable doctor` to diagnose the problem.",
+		)
+	}
 
 	err := rootCmd.Execute()
 	return exitCodeFromError(err)
@@ -77,19 +83,19 @@ func buildProjectCommands(project *sidetable.Project) []*cobra.Command {
 	return cmds
 }
 
-func injectUserDefinedCommands() {
+func injectUserDefinedCommands() error {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return
+		return err
 	}
 
 	project, err := sidetable.NewProject(cwd)
 	if err != nil {
-		return
+		return err
 	}
 
 	subCommands := buildProjectCommands(project)
-	for _, cmd := range subCommands {
-		rootCmd.AddCommand(cmd)
-	}
+	rootCmd.AddCommand(subCommands...)
+
+	return nil
 }
