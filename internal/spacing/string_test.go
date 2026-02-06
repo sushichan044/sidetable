@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sushichan044/sidetable/utils/spacing"
+	"github.com/sushichan044/sidetable/internal/spacing"
 )
 
 func TestFormatter_BasicUsage(t *testing.T) {
