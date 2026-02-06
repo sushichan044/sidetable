@@ -4,14 +4,6 @@ This file provides guidance to Coding Agents when working with code in this repo
 
 ---
 
-## Agent Guidelines
-
-- **Language**: English code/docs/comments
-- **Execution**: Test→Lint→Cleanup workflow
-- **Files**: Cleanup temp files after use
-- **Efficiency**: Parallel operations for independent tasks
-- **Path Handling**: You MUST treat all paths as relative to the cwd unless starts with `/` (root) or a drive letter (e.g., `C:\`).
-
 ## Quick Commands
 
 ```bash
@@ -38,7 +30,7 @@ See README.md for more details.
 Keep this file light. For implementation details, refer to:
 
 - Product and usage overview: `README.md`
-- CLI entry point: `cmd/sidetable/main.go`
+- CLI entry point: `cmd/root.go`
 - Package layout and behavior: `internal/`
 - Dependencies and versions: `go.mod`, `go.sum`
 - Task runner and scripts: `mise.toml`
