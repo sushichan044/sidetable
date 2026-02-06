@@ -508,3 +508,12 @@ linters:
           - gosec
           - noctx
           - wrapcheck
+      # Excluding conflicting linters with spf13/cobra's conventions
+      - path: 'cmd/'
+        linters:
+          - gochecknoglobals
+          - gochecknoinits
+      - path: 'cmd/'
+        linters:
+          - revive
+        text: package comment should be of the form "Package cmd ..."
