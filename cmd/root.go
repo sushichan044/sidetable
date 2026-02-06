@@ -31,17 +31,17 @@ func Execute() int {
 	}
 
 	err := rootCmd.Execute()
-	return exitCodeFromError(err)
+	return determineExitCode(err)
 }
 
-func exitCodeFromError(err error) int {
+func determineExitCode(err error) int {
 	if err == nil {
 		return 0
 	}
 
-	exitErr := sidetable.ExtractExitError(err)
-	if exitErr != nil {
-		return exitErr.Code
+	execErr := sidetable.GetExecError(err)
+	if execErr != nil {
+		return execErr.Code
 	}
 
 	return 1

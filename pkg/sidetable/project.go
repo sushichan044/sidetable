@@ -56,9 +56,9 @@ func ResolveConfigPath() (string, error) {
 	return config.ResolvePath()
 }
 
-// ExtractExitError extracts ExitError from the given error if possible.
-func ExtractExitError(err error) *action.ExitError {
-	return action.ExtractExitError(err)
+// GetExecError extracts ExecError if err caused by user-defined command execution.
+func GetExecError(err error) *action.ExecError {
+	return action.GetExecError(err)
 }
 
 // ListCommands returns resolved command entries with descriptions.

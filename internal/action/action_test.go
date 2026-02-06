@@ -120,13 +120,13 @@ func TestCommandValidationAfterTemplate(t *testing.T) {
 
 func TestExitError(t *testing.T) {
 	t.Run("Error", func(t *testing.T) {
-		err := &action.ExitError{Code: 1}
+		err := &action.ExecError{Code: 1}
 		require.Equal(t, "command exited with code 1", err.Error())
 	})
 
 	t.Run("Unwrap", func(t *testing.T) {
 		innerErr := errors.New("inner error")
-		err := &action.ExitError{Code: 1, Err: innerErr}
+		err := &action.ExecError{Code: 1, Err: innerErr}
 		require.Equal(t, innerErr, err.Unwrap())
 	})
 }
@@ -148,7 +148,7 @@ func TestExecute(t *testing.T) {
 		}
 		err := action.Execute(spec)
 		require.Error(t, err)
-		var exitErr *action.ExitError
+		var exitErr *action.ExecError
 		require.ErrorAs(t, err, &exitErr)
 		require.Equal(t, 42, exitErr.Code)
 	})

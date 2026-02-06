@@ -18,29 +18,29 @@ var (
 	ErrCommandTemplateHasSpace = errors.New("command template contains spaces")
 )
 
-// ExitError represents a command that exited with non-zero status.
-type ExitError struct {
+// ExecError represents a command that exited with non-zero status.
+type ExecError struct {
 	Code int
 	Err  error
 }
 
-func (e *ExitError) Error() string {
+func (e *ExecError) Error() string {
 	return fmt.Sprintf("command exited with code %d", e.Code)
 }
 
-func (e *ExitError) Unwrap() error {
+func (e *ExecError) Unwrap() error {
 	return e.Err
 }
 
-func ExtractExitError(err error) *ExitError {
+func GetExecError(err error) *ExecError {
 	if err == nil {
 		return nil
 	}
 
 	// NOTE: use error.AsType after Go 1.26 released
-	var exitErr *ExitError
-	if errors.As(err, &exitErr) {
-		return exitErr
+	var execErr *ExecError
+	if errors.As(err, &execErr) {
+		return execErr
 	}
 	return nil
 }
@@ -115,7 +115,7 @@ func Execute(spec *Action) error {
 
 	if err := cmd.Run(); err != nil {
 		if exitErr := new(exec.ExitError); errors.As(err, &exitErr) {
-			return &ExitError{
+			return &ExecError{
 				Code: exitErr.ExitCode(),
 				Err:  err,
 			}

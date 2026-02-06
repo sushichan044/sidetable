@@ -14,21 +14,21 @@ import (
 	"github.com/sushichan044/sidetable/pkg/sidetable"
 )
 
-func TestExitCodeFromError(t *testing.T) {
+func TestDetermineExitCode(t *testing.T) {
 	t.Run("nil error returns zero", func(t *testing.T) {
-		require.Equal(t, 0, exitCodeFromError(nil))
+		require.Equal(t, 0, determineExitCode(nil))
 	})
 
 	t.Run("delegated exit code is preserved", func(t *testing.T) {
-		err := &action.ExitError{
+		err := &action.ExecError{
 			Code: 42,
 			Err:  errors.New("boom"),
 		}
-		require.Equal(t, 42, exitCodeFromError(err))
+		require.Equal(t, 42, determineExitCode(err))
 	})
 
 	t.Run("non-delegated errors return one", func(t *testing.T) {
-		require.Equal(t, 1, exitCodeFromError(errors.New("unexpected")))
+		require.Equal(t, 1, determineExitCode(errors.New("unexpected")))
 	})
 }
 
