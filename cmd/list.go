@@ -13,7 +13,9 @@ import (
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List available commands",
-	Long:  `TODO: fill long description`,
+	Long: `List available commands defined in the sidetable configuration for the current project.
+
+The output shows command name, alias, and description for each configured command.`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {

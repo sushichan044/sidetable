@@ -11,9 +11,12 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:          "sidetable",
-	Short:        "Personal directory manager per project",
-	Long:         `TODO: fill long description`,
+	Use:   "sidetable",
+	Short: "Personal directory manager per project",
+	Long: `sidetable manages a project-local private area and runs commands defined in your project configuration.
+
+Define commands in config.yml, then execute them as "sidetable <command> [args...]".
+Use "sidetable list" to inspect available commands and "sidetable doctor" to validate configuration.`,
 	SilenceUsage: true,
 	Version:      version.Get(),
 }

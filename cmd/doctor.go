@@ -12,7 +12,9 @@ import (
 var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Check configuration for issues",
-	Long:  `TODO: fill long description`,
+	Long: `Check sidetable configuration for common problems in the current project.
+
+Doctor validates command names and aliases and reports conflicts with built-in commands such as "list", "doctor", and "completion".`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
