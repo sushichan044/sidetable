@@ -22,14 +22,14 @@ func TestResolvePath(t *testing.T) {
 
 	t.Run("yml only", func(t *testing.T) {
 		require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
-		path, err := config.ResolvePath()
+		path, err := config.FindConfigPath()
 		require.NoError(t, err)
 		require.Equal(t, ymlPath, path) //nolint:testifylint // Comparing file paths, not YAML content
 		require.NoError(t, os.Remove(ymlPath))
 	})
 
 	t.Run("missing", func(t *testing.T) {
-		_, err := config.ResolvePath()
+		_, err := config.FindConfigPath()
 		require.Error(t, err)
 	})
 }
@@ -52,7 +52,7 @@ func TestResolvePathPrefersEnvDir(t *testing.T) {
 	require.NoError(t, os.WriteFile(envPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 	require.NoError(t, os.WriteFile(xdgPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 
-	path, err := config.ResolvePath()
+	path, err := config.FindConfigPath()
 	require.NoError(t, err)
 	require.Equal(t, envPath, path)
 }
@@ -69,7 +69,7 @@ func TestResolvePathFallbackXDG(t *testing.T) {
 	ymlPath := filepath.Join(xdgDir, "config.yml")
 	require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 
-	path, err := config.ResolvePath()
+	path, err := config.FindConfigPath()
 	require.NoError(t, err)
 	require.Equal(t, ymlPath, path) //nolint:testifylint // Comparing file paths, not YAML content
 }

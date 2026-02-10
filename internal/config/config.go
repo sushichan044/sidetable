@@ -59,26 +59,37 @@ type ResolvedCommand struct {
 
 const configDirEnv = "SIDETABLE_CONFIG_DIR"
 
-// ResolvePath returns the config path resolved from SIDETABLE_CONFIG_DIR or XDG_CONFIG_HOME.
-func ResolvePath() (string, error) {
+// FindConfigPath returns the config path, erroring if it does not exist.
+// This is used for commands that require an existing config.
+func FindConfigPath() (string, error) {
+	path, err := GetConfigPath()
+	if err != nil {
+		return "", err
+	}
+
+	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
+		return "", ErrConfigNotFound
+	}
+
+	return path, nil
+}
+
+// GetConfigPath returns the config path from SIDETABLE_CONFIG_DIR or XDG_CONFIG_HOME.
+func GetConfigPath() (string, error) {
 	if dir := os.Getenv(configDirEnv); dir != "" {
-		return resolvePathFromDir(dir)
+		return configPathFromDir(dir), nil
 	}
 	cfgHome, err := xdg.ConfigHome()
 	if err != nil {
 		return "", err
 	}
-	return resolvePathFromDir(filepath.Join(cfgHome, "sidetable"))
+
+	return configPathFromDir(filepath.Join(cfgHome, "sidetable")), nil
 }
 
-func resolvePathFromDir(dir string) (string, error) {
+func configPathFromDir(dir string) string {
 	cleanDir := filepath.Clean(dir)
-	ymlPath := filepath.Join(cleanDir, "config.yml")
-
-	if ymlExists := fileExists(ymlPath); ymlExists {
-		return ymlPath, nil
-	}
-	return "", fmt.Errorf("%w: looked for %q", ErrConfigNotFound, ymlPath)
+	return filepath.Join(cleanDir, "config.yml")
 }
 
 // Load reads and validates config from path.
@@ -167,12 +178,4 @@ func (c *Config) CommandNames() []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return !info.IsDir()
 }
