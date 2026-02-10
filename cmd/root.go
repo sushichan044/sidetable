@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/sushichan044/sidetable"
+	"github.com/sushichan044/sidetable/internal/config"
 	"github.com/sushichan044/sidetable/version"
 )
 
@@ -24,10 +26,17 @@ Use "sidetable list" to inspect available commands and "sidetable doctor" to val
 // Execute executes the root command and returns the exit code.
 func Execute() int {
 	if err := injectUserDefinedCommands(); err != nil {
-		fmt.Fprintln(
-			os.Stderr,
-			"Error occurred while loading user-defined commands. Run `sidetable doctor` to diagnose the problem.",
-		)
+		if errors.Is(err, config.ErrCommandNotFound) {
+			fmt.Fprintln(
+				os.Stderr,
+				"Warning: No commands defined in configuration. Run `sidetable init` to create a default config.",
+			)
+		} else {
+			fmt.Fprintln(
+				os.Stderr,
+				"Error occurred while loading user-defined commands. Run `sidetable doctor` to diagnose the problem.",
+			)
+		}
 	}
 
 	err := rootCmd.Execute()
