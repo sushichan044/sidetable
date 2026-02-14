@@ -102,11 +102,6 @@ func TestValidate(t *testing.T) {
 		require.Error(t, cfg.Validate())
 	})
 
-	t.Run("missing commands", func(t *testing.T) {
-		cfg := &config.Config{Directory: ".private"}
-		require.Error(t, cfg.Validate())
-	})
-
 	t.Run("empty command", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",

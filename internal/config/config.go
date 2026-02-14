@@ -16,7 +16,6 @@ import (
 var (
 	ErrConfigNotFound       = errors.New("config.yml file not found")
 	ErrCommandNotFound      = errors.New("command not found")
-	ErrCommandsMissing      = errors.New("commands is required")
 	ErrDirectoryMissing     = errors.New("directory is required")
 	ErrDirectoryAbsolute    = errors.New("directory must be relative")
 	ErrCommandMissing       = errors.New("command is required")
@@ -119,9 +118,6 @@ func (c *Config) Validate() error {
 	}
 	if filepath.IsAbs(c.Directory) {
 		return ErrDirectoryAbsolute
-	}
-	if len(c.Commands) == 0 {
-		return ErrCommandsMissing
 	}
 
 	aliasSeen := map[string]struct{}{}
