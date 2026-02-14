@@ -28,14 +28,11 @@ func Execute() int {
 	if err := injectUserDefinedCommands(); err != nil {
 		fmt.Fprintln(os.Stderr, color.RedString("Error occurred while loading config:"))
 
-		// If config loading fails, print error details and continue.
-		// This allows users to use built-in commands like "help" or "init" anytime.
-		if errs, ok := errutils.UnwrapJoinError(err); ok {
-			for _, e := range errs {
-				fmt.Fprintln(os.Stderr, color.RedString("- %v", e))
-			}
-		} else {
-			fmt.Fprintln(os.Stderr, color.RedString("- %v", err))
+		// // If config loading fails, print error details and continue.
+		// // This allows users to use built-in commands like "help" or "init" anytime.
+		errs, _ := errutils.UnwrapJoinError(err)
+		for _, e := range errs {
+			fmt.Fprintln(os.Stderr, color.RedString("- %v", e))
 		}
 		fmt.Fprintln(os.Stderr)
 	}
