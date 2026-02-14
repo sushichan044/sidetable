@@ -8,7 +8,7 @@ tool (
 )
 
 require (
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.18.0
 	github.com/goccy/go-yaml v1.19.2
 	github.com/mattn/go-runewidth v0.0.19
 	github.com/spf13/cobra v1.10.2
@@ -31,7 +31,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mfridman/tparse v0.18.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
