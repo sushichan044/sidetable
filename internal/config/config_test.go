@@ -140,7 +140,7 @@ func TestValidate(t *testing.T) {
 				"list": {Command: "ghq"},
 			},
 		}
-		require.NoError(t, cfg.Validate())
+		require.ErrorIs(t, cfg.Validate(), config.ErrCommandConflictsWithBuiltin)
 	})
 
 	t.Run("legacy alias is removed", func(t *testing.T) {
@@ -216,7 +216,44 @@ func TestValidate(t *testing.T) {
 				"list": {Command: "a"},
 			},
 		}
+		require.ErrorIs(t, cfg.Validate(), config.ErrAliasConflictsWithBuiltin)
+	})
+
+	t.Run("doctor name is allowed for command and alias", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"doctor": {Command: "echo"},
+				"a":      {Command: "echo"},
+			},
+			Aliases: map[string]config.Alias{
+				"d": {Command: "doctor"},
+			},
+		}
 		require.NoError(t, cfg.Validate())
+	})
+
+	t.Run("collects multiple validation errors", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"list": {
+					Command: "bad cmd",
+				},
+			},
+			Aliases: map[string]config.Alias{
+				"help": {
+					Command: "missing",
+				},
+			},
+		}
+
+		err := cfg.Validate()
+		require.Error(t, err)
+		require.ErrorIs(t, err, config.ErrCommandMustNotContainSpaces)
+		require.ErrorIs(t, err, config.ErrCommandConflictsWithBuiltin)
+		require.ErrorIs(t, err, config.ErrAliasConflictsWithBuiltin)
+		require.ErrorIs(t, err, config.ErrAliasTargetUnknown)
 	})
 }
 

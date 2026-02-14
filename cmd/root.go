@@ -1,14 +1,13 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/sushichan044/sidetable"
-	"github.com/sushichan044/sidetable/internal/config"
+	"github.com/sushichan044/sidetable/internal/errutils"
 	"github.com/sushichan044/sidetable/version"
 )
 
@@ -18,7 +17,7 @@ var rootCmd = &cobra.Command{
 	Long: `sidetable manages a project-local private area and runs commands defined in your project configuration.
 
 Define commands in config.yml, then execute them as "sidetable <command> [args...]".
-Use "sidetable list" to inspect available commands and "sidetable doctor" to validate configuration.`,
+Use "sidetable list" to inspect available commands.`,
 	SilenceUsage: true,
 	Version:      version.Get(),
 }
@@ -26,25 +25,22 @@ Use "sidetable list" to inspect available commands and "sidetable doctor" to val
 // Execute executes the root command and returns the exit code.
 func Execute() int {
 	if err := injectUserDefinedCommands(); err != nil {
-		if isNoCommandsWarningError(err) {
-			fmt.Fprintln(
-				os.Stderr,
-				"Warning: No commands defined in configuration. Add commands to config.yml, or run `sidetable init` to create a default config.",
-			)
+		fmt.Fprintln(os.Stderr, "Error occurred while loading config:")
+
+		if errs, ok := errutils.UnwrapJoinError(err); ok {
+			for _, e := range errs {
+				fmt.Fprintf(os.Stderr, "- %v\n", e)
+			}
 		} else {
-			fmt.Fprintln(
-				os.Stderr,
-				"Error occurred while loading user-defined commands. Run `sidetable doctor` to diagnose the problem.",
-			)
+			fmt.Fprintf(os.Stderr, "- %v\n", err)
 		}
+		fmt.Fprintf(os.Stderr, "\n")
 	}
 
-	err := rootCmd.Execute()
-	return determineExitCode(err)
-}
-
-func isNoCommandsWarningError(err error) bool {
-	return errors.Is(err, config.ErrConfigMissing) || errors.Is(err, config.ErrCommandsMissing)
+	if err := rootCmd.Execute(); err != nil {
+		return determineExitCode(err)
+	}
+	return 0
 }
 
 func determineExitCode(err error) int {

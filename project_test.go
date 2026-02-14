@@ -163,7 +163,7 @@ func TestProjectListCommandsTemplateError(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestProjectListCommandsInvalidBuiltinConflicts(t *testing.T) {
+func TestNewProjectFailsOnBuiltinNameConflicts(t *testing.T) {
 	projectDir := filepath.Join(t.TempDir(), "proj")
 	require.NoError(t, os.MkdirAll(projectDir, 0o755))
 
@@ -180,7 +180,7 @@ func TestProjectListCommandsInvalidBuiltinConflicts(t *testing.T) {
 			},
 		},
 		Aliases: map[string]config.Alias{
-			"doctor": {
+			"help": {
 				Command:     "hello",
 				Description: "conflicting alias",
 			},
@@ -190,24 +190,10 @@ func TestProjectListCommandsInvalidBuiltinConflicts(t *testing.T) {
 	err := setupProject(t, cfg)
 	require.NoError(t, err)
 
-	project, err := sidetable.NewProject(projectDir)
-	require.NoError(t, err)
-
-	commands, err := project.ListCommands()
-	require.NoError(t, err)
-
-	require.Len(t, commands.Commands, 1)
-	require.Equal(t, "hello", commands.Commands[0].Name)
-	require.Empty(t, commands.Aliases)
-	require.Len(t, commands.Invalid, 2)
-
-	require.Equal(t, "list", commands.Invalid[0].Name)
-	require.Equal(t, "command", commands.Invalid[0].Kind)
-	require.Equal(t, "conflicts with builtin command", commands.Invalid[0].Reason)
-
-	require.Equal(t, "doctor", commands.Invalid[1].Name)
-	require.Equal(t, "alias", commands.Invalid[1].Kind)
-	require.Equal(t, "conflicts with builtin command", commands.Invalid[1].Reason)
+	_, err = sidetable.NewProject(projectDir)
+	require.Error(t, err)
+	require.ErrorIs(t, err, config.ErrCommandConflictsWithBuiltin)
+	require.ErrorIs(t, err, config.ErrAliasConflictsWithBuiltin)
 }
 
 func TestProjectBuildActionValidation(t *testing.T) {
