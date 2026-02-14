@@ -18,14 +18,14 @@ func TestResolvePath(t *testing.T) {
 	require.NoError(t, os.MkdirAll(envDir, 0o755))
 	t.Setenv("SIDETABLE_CONFIG_DIR", envDir)
 
-	ymlPath := filepath.Join(envDir, "config.yml")
+	configPath := filepath.Join(envDir, "config.yml")
 
 	t.Run("yml only", func(t *testing.T) {
-		require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
+		require.NoError(t, os.WriteFile(configPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 		path, err := config.FindConfigPath()
 		require.NoError(t, err)
-		require.Equal(t, ymlPath, path)
-		require.NoError(t, os.Remove(ymlPath))
+		require.Equal(t, configPath, path)
+		require.NoError(t, os.Remove(configPath))
 	})
 
 	t.Run("missing", func(t *testing.T) {
@@ -66,12 +66,12 @@ func TestResolvePathFallbackXDG(t *testing.T) {
 	t.Setenv("SIDETABLE_CONFIG_DIR", "")
 	t.Setenv("XDG_CONFIG_HOME", xdgHome)
 
-	ymlPath := filepath.Join(xdgDir, "config.yml")
-	require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
+	configPath := filepath.Join(xdgDir, "config.yml")
+	require.NoError(t, os.WriteFile(configPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 
 	path, err := config.FindConfigPath()
 	require.NoError(t, err)
-	require.Equal(t, ymlPath, path)
+	require.Equal(t, configPath, path)
 }
 
 func TestValidate(t *testing.T) {
@@ -233,7 +233,6 @@ func TestResolveCommandName(t *testing.T) {
 				Args: config.Args{
 					Append: []string{"get"},
 				},
-				Env: map[string]string{"X": "1"},
 			},
 		},
 	}
@@ -244,7 +243,6 @@ func TestResolveCommandName(t *testing.T) {
 	require.Equal(t, "ghq", resolved.Command.Command)
 	require.Empty(t, resolved.AliasName)
 	require.Nil(t, resolved.AliasArgs)
-	require.Nil(t, resolved.AliasEnv)
 
 	resolved, err = cfg.ResolveCommand("gg")
 	require.NoError(t, err)
@@ -252,7 +250,6 @@ func TestResolveCommandName(t *testing.T) {
 	require.Equal(t, "ghq", resolved.Command.Command)
 	require.Equal(t, "gg", resolved.AliasName)
 	require.Equal(t, []string{"get"}, resolved.AliasArgs.Append)
-	require.Equal(t, map[string]string{"X": "1"}, resolved.AliasEnv)
 
 	_, err = cfg.ResolveCommand("missing")
 	require.ErrorIs(t, err, config.ErrCommandUnknown)
