@@ -174,6 +174,10 @@ aliases:
   gg:
     # Required. Target command name defined in `commands`.
     command: "ghq"
+    args:
+      prepend:
+        - "get"
+        - "-u"
     description: "ghq get shortcut"
   n:
     command: "note"
