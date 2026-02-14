@@ -164,7 +164,9 @@ func TestValidate(t *testing.T) {
 				"x": {Command: ""},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrAliasCommandRequired)
+		err := cfg.Validate()
+		require.ErrorIs(t, err, config.ErrAliasCommandRequired)
+		require.NotErrorIs(t, err, config.ErrAliasTargetUnknown)
 	})
 
 	t.Run("alias target unknown", func(t *testing.T) {

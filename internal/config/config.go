@@ -203,7 +203,8 @@ func (c *Config) validateAliases() []error {
 		if strings.ContainsAny(aliasName, " \t\n\r") {
 			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasMustNotContainSpaces))
 		}
-		if strings.TrimSpace(alias.Command) == "" {
+		aliasCommand := strings.TrimSpace(alias.Command)
+		if aliasCommand == "" {
 			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasCommandRequired))
 		}
 		if _, exists := c.Commands[aliasName]; exists {
@@ -212,8 +213,10 @@ func (c *Config) validateAliases() []error {
 		if builtin.IsReservedCommand(aliasName) {
 			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithBuiltin))
 		}
-		if _, exists := c.Commands[alias.Command]; !exists {
-			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasTargetUnknown))
+		if aliasCommand != "" {
+			if _, exists := c.Commands[aliasCommand]; !exists {
+				errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasTargetUnknown))
+			}
 		}
 	}
 
