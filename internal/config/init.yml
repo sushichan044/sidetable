@@ -1,0 +1,39 @@
+# sidetable config template
+# This file is copied by `sidetable init`. Edit it to match your workflow.
+
+# Required. Project-local private area (relative path).
+directory: ".sidetable"
+
+# Required. Define commands that `sidetable` can run.
+commands:
+  # ghq:
+  #   # Required. Command name to execute.
+  #   command: "ghq"
+  #   # Optional. Arguments injected before user args.
+  #   args:
+  #     prepend:
+  #       - "get"
+  #       - "-u"
+  #   # Optional. Environment variables (Go template supported).
+  #   env:
+  #     GHQ_ROOT: "{{.CommandDir}}"
+  #   # Optional. Description shown in `sidetable list`.
+  #   description: "ghq wrapper with project-local root"
+  #   # Optional. Short alias.
+  #   alias: "gg"
+
+  # note:
+  #   # You can reference the config directory.
+  #   command: "{{.ConfigDir}}/vim-note.sh"
+  #   # Optional. Arguments injected after user args.
+  #   args:
+  #     append:
+  #       - "{{.CommandDir}}/note.md"
+  #   description: "Open project note file"
+  #   alias: "n"
+
+# Template variables (available in command/args/env/description):
+# - {{.ProjectDir}}: current directory (absolute path)
+# - {{.PrivateDir}}: {{.ProjectDir}}/<directory>
+# - {{.CommandDir}}: {{.ProjectDir}}/<directory>/<commandName>
+# - {{.ConfigDir}}: directory containing config.yml

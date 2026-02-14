@@ -12,6 +12,7 @@ import (
 
 	"github.com/sushichan044/sidetable"
 	"github.com/sushichan044/sidetable/internal/action"
+	"github.com/sushichan044/sidetable/internal/config"
 )
 
 func TestDetermineExitCode(t *testing.T) {
@@ -72,4 +73,22 @@ commands:
 
 	_, _, err = root.Find([]string{"list"})
 	require.Error(t, err)
+}
+
+func TestIsNoCommandsWarningError(t *testing.T) {
+	t.Run("config missing", func(t *testing.T) {
+		require.True(t, isNoCommandsWarningError(config.ErrConfigMissing))
+	})
+
+	t.Run("commands missing", func(t *testing.T) {
+		require.True(t, isNoCommandsWarningError(config.ErrCommandsMissing))
+	})
+
+	t.Run("command unknown is not warning", func(t *testing.T) {
+		require.False(t, isNoCommandsWarningError(config.ErrCommandUnknown))
+	})
+
+	t.Run("other error is not warning", func(t *testing.T) {
+		require.False(t, isNoCommandsWarningError(errors.New("boom")))
+	})
 }

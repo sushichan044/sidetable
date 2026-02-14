@@ -14,15 +14,15 @@ import (
 )
 
 var (
-	ErrConfigNotFound       = errors.New("config.yml file not found")
-	ErrCommandNotFound      = errors.New("command not found")
-	ErrCommandsMissing      = errors.New("commands is required")
-	ErrDirectoryMissing     = errors.New("directory is required")
-	ErrDirectoryAbsolute    = errors.New("directory must be relative")
-	ErrCommandMissing       = errors.New("command is required")
-	ErrCommandHasSpace      = errors.New("command must not contain spaces")
-	ErrAliasDuplicate       = errors.New("alias is duplicated")
-	ErrAliasCommandConflict = errors.New("alias conflicts with command name")
+	ErrConfigMissing               = errors.New("config.yml file not found")
+	ErrCommandsMissing             = errors.New("commands are required")
+	ErrCommandUnknown              = errors.New("command not found")
+	ErrDirectoryRequired           = errors.New("directory is required")
+	ErrDirectoryMustBeRelative     = errors.New("directory must be relative")
+	ErrCommandRequired             = errors.New("command is required")
+	ErrCommandMustNotContainSpaces = errors.New("command must not contain spaces")
+	ErrAliasDuplicate              = errors.New("alias is duplicated")
+	ErrAliasConflictsWithCommand   = errors.New("alias conflicts with command name")
 )
 
 // Config represents configuration file structure.
@@ -59,26 +59,40 @@ type ResolvedCommand struct {
 
 const configDirEnv = "SIDETABLE_CONFIG_DIR"
 
-// ResolvePath returns the config path resolved from SIDETABLE_CONFIG_DIR or XDG_CONFIG_HOME.
-func ResolvePath() (string, error) {
+// FindConfigPath returns the config path, erroring if it does not exist.
+// This is used for commands that require an existing config.
+func FindConfigPath() (string, error) {
+	path, err := GetConfigPath()
+	if err != nil {
+		return "", err
+	}
+
+	if _, statErr := os.Stat(path); statErr != nil {
+		if os.IsNotExist(statErr) {
+			return "", ErrConfigMissing
+		}
+		return "", statErr
+	}
+
+	return path, nil
+}
+
+// GetConfigPath returns the config path from SIDETABLE_CONFIG_DIR or XDG_CONFIG_HOME.
+func GetConfigPath() (string, error) {
 	if dir := os.Getenv(configDirEnv); dir != "" {
-		return resolvePathFromDir(dir)
+		return configPathFromDir(dir), nil
 	}
 	cfgHome, err := xdg.ConfigHome()
 	if err != nil {
 		return "", err
 	}
-	return resolvePathFromDir(filepath.Join(cfgHome, "sidetable"))
+
+	return configPathFromDir(filepath.Join(cfgHome, "sidetable")), nil
 }
 
-func resolvePathFromDir(dir string) (string, error) {
+func configPathFromDir(dir string) string {
 	cleanDir := filepath.Clean(dir)
-	ymlPath := filepath.Join(cleanDir, "config.yml")
-
-	if ymlExists := fileExists(ymlPath); ymlExists {
-		return ymlPath, nil
-	}
-	return "", fmt.Errorf("%w: looked for %q", ErrConfigNotFound, ymlPath)
+	return filepath.Join(cleanDir, "config.yml")
 }
 
 // Load reads and validates config from path.
@@ -104,10 +118,10 @@ func Load(path string) (*Config, error) {
 // Validate ensures config follows the specification.
 func (c *Config) Validate() error {
 	if strings.TrimSpace(c.Directory) == "" {
-		return ErrDirectoryMissing
+		return ErrDirectoryRequired
 	}
 	if filepath.IsAbs(c.Directory) {
-		return ErrDirectoryAbsolute
+		return ErrDirectoryMustBeRelative
 	}
 	if len(c.Commands) == 0 {
 		return ErrCommandsMissing
@@ -116,16 +130,16 @@ func (c *Config) Validate() error {
 	aliasSeen := map[string]struct{}{}
 	for name, cmd := range c.Commands {
 		if strings.TrimSpace(cmd.Command) == "" {
-			return fmt.Errorf("command %q: %w", name, ErrCommandMissing)
+			return fmt.Errorf("command %q: %w", name, ErrCommandRequired)
 		}
 		if strings.ContainsAny(cmd.Command, " \t\n\r") {
-			return fmt.Errorf("command %q: %w", name, ErrCommandHasSpace)
+			return fmt.Errorf("command %q: %w", name, ErrCommandMustNotContainSpaces)
 		}
 		if cmd.Alias == "" {
 			continue
 		}
 		if _, exists := c.Commands[cmd.Alias]; exists {
-			return fmt.Errorf("command %q: %w", name, ErrAliasCommandConflict)
+			return fmt.Errorf("command %q: %w", name, ErrAliasConflictsWithCommand)
 		}
 		if _, exists := aliasSeen[cmd.Alias]; exists {
 			return fmt.Errorf("command %q: %w", name, ErrAliasDuplicate)
@@ -156,7 +170,7 @@ func (c *Config) ResolveCommand(name string) (*ResolvedCommand, error) {
 			}, nil
 		}
 	}
-	return nil, ErrCommandNotFound
+	return nil, ErrCommandUnknown
 }
 
 // CommandNames returns sorted command names.
@@ -167,12 +181,4 @@ func (c *Config) CommandNames() []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return !info.IsDir()
 }

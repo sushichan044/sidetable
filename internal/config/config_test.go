@@ -22,15 +22,15 @@ func TestResolvePath(t *testing.T) {
 
 	t.Run("yml only", func(t *testing.T) {
 		require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
-		path, err := config.ResolvePath()
+		path, err := config.FindConfigPath()
 		require.NoError(t, err)
 		require.Equal(t, ymlPath, path) //nolint:testifylint // Comparing file paths, not YAML content
 		require.NoError(t, os.Remove(ymlPath))
 	})
 
 	t.Run("missing", func(t *testing.T) {
-		_, err := config.ResolvePath()
-		require.Error(t, err)
+		_, err := config.FindConfigPath()
+		require.ErrorIs(t, err, config.ErrConfigMissing)
 	})
 }
 
@@ -52,7 +52,7 @@ func TestResolvePathPrefersEnvDir(t *testing.T) {
 	require.NoError(t, os.WriteFile(envPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 	require.NoError(t, os.WriteFile(xdgPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 
-	path, err := config.ResolvePath()
+	path, err := config.FindConfigPath()
 	require.NoError(t, err)
 	require.Equal(t, envPath, path)
 }
@@ -69,7 +69,7 @@ func TestResolvePathFallbackXDG(t *testing.T) {
 	ymlPath := filepath.Join(xdgDir, "config.yml")
 	require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 
-	path, err := config.ResolvePath()
+	path, err := config.FindConfigPath()
 	require.NoError(t, err)
 	require.Equal(t, ymlPath, path) //nolint:testifylint // Comparing file paths, not YAML content
 }
@@ -87,7 +87,7 @@ func TestValidate(t *testing.T) {
 
 	t.Run("missing directory", func(t *testing.T) {
 		cfg := &config.Config{Commands: map[string]config.Command{"a": {Command: "a"}}}
-		require.Error(t, cfg.Validate())
+		require.ErrorIs(t, cfg.Validate(), config.ErrDirectoryRequired)
 	})
 
 	t.Run("absolute directory", func(t *testing.T) {
@@ -99,12 +99,22 @@ func TestValidate(t *testing.T) {
 			Directory: abs,
 			Commands:  map[string]config.Command{"a": {Command: "a"}},
 		}
-		require.Error(t, cfg.Validate())
+		require.ErrorIs(t, cfg.Validate(), config.ErrDirectoryMustBeRelative)
 	})
 
-	t.Run("missing commands", func(t *testing.T) {
-		cfg := &config.Config{Directory: ".private"}
-		require.Error(t, cfg.Validate())
+	t.Run("missing commands key", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+		}
+		require.ErrorIs(t, cfg.Validate(), config.ErrCommandsMissing)
+	})
+
+	t.Run("empty commands map", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands:  map[string]config.Command{},
+		}
+		require.ErrorIs(t, cfg.Validate(), config.ErrCommandsMissing)
 	})
 
 	t.Run("empty command", func(t *testing.T) {
@@ -112,7 +122,7 @@ func TestValidate(t *testing.T) {
 			Directory: ".private",
 			Commands:  map[string]config.Command{"a": {Command: ""}},
 		}
-		require.Error(t, cfg.Validate())
+		require.ErrorIs(t, cfg.Validate(), config.ErrCommandRequired)
 	})
 
 	t.Run("command with spaces", func(t *testing.T) {
@@ -120,7 +130,7 @@ func TestValidate(t *testing.T) {
 			Directory: ".private",
 			Commands:  map[string]config.Command{"a": {Command: "bad cmd"}},
 		}
-		require.Error(t, cfg.Validate())
+		require.ErrorIs(t, cfg.Validate(), config.ErrCommandMustNotContainSpaces)
 	})
 
 	t.Run("alias duplicate", func(t *testing.T) {
@@ -131,7 +141,7 @@ func TestValidate(t *testing.T) {
 				"b": {Command: "b", Alias: "x"},
 			},
 		}
-		require.Error(t, cfg.Validate())
+		require.ErrorIs(t, cfg.Validate(), config.ErrAliasDuplicate)
 	})
 
 	t.Run("alias collides with command", func(t *testing.T) {
@@ -142,7 +152,7 @@ func TestValidate(t *testing.T) {
 				"b": {Command: "b"},
 			},
 		}
-		require.Error(t, cfg.Validate())
+		require.ErrorIs(t, cfg.Validate(), config.ErrAliasConflictsWithCommand)
 	})
 }
 
@@ -170,7 +180,7 @@ func TestResolveCommandName(t *testing.T) {
 	require.Nil(t, resolved.AliasArgs)
 
 	_, err = cfg.ResolveCommand("missing")
-	require.Error(t, err)
+	require.ErrorIs(t, err, config.ErrCommandUnknown)
 }
 
 func TestLoad_ParsesYAML(t *testing.T) {
@@ -279,7 +289,7 @@ func TestResolveCommandWithAliasInfo(t *testing.T) {
 		{
 			name:      "command not found",
 			inputName: "unknown",
-			wantErr:   config.ErrCommandNotFound,
+			wantErr:   config.ErrCommandUnknown,
 		},
 	}
 

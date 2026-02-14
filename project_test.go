@@ -194,7 +194,7 @@ func TestProjectBuildActionCommandNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = project.BuildAction("missing", nil)
-	require.ErrorIs(t, err, config.ErrCommandNotFound)
+	require.ErrorIs(t, err, config.ErrCommandUnknown)
 }
 
 func TestProjectBuildActionSuccess(t *testing.T) {

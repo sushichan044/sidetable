@@ -40,7 +40,7 @@ func NewProject(projectDir string) (*Project, error) {
 		return nil, fmt.Errorf("projectDir is not a directory: %s", projectDir)
 	}
 
-	path, err := ResolveConfigPath()
+	path, err := FindConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -51,9 +51,9 @@ func NewProject(projectDir string) (*Project, error) {
 	return &Project{config: cfg, projectDir: projectDir}, nil
 }
 
-// ResolveConfigPath resolves the config path with default search.
-func ResolveConfigPath() (string, error) {
-	return config.ResolvePath()
+// FindConfigPath returns the config path, erroring if it does not exist.
+func FindConfigPath() (string, error) {
+	return config.FindConfigPath()
 }
 
 // GetExecError extracts ExecError if err caused by user-defined command execution.

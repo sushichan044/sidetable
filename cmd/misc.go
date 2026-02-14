@@ -5,6 +5,7 @@ var (
 		"list":       {},
 		"completion": {}, // defined by cobra
 		"doctor":     {},
+		"init":       {},
 	}
 )
 
