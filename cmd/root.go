@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/sushichan044/sidetable"
@@ -25,16 +26,18 @@ Use "sidetable list" to inspect available commands.`,
 // Execute executes the root command and returns the exit code.
 func Execute() int {
 	if err := injectUserDefinedCommands(); err != nil {
-		fmt.Fprintln(os.Stderr, "Error occurred while loading config:")
+		fmt.Fprintln(os.Stderr, color.RedString("Error occurred while loading config:"))
 
+		// If config loading fails, print error details and continue.
+		// This allows users to use built-in commands like "help" or "init" anytime.
 		if errs, ok := errutils.UnwrapJoinError(err); ok {
 			for _, e := range errs {
-				fmt.Fprintf(os.Stderr, "- %v\n", e)
+				fmt.Fprintln(os.Stderr, color.RedString("- %v", e))
 			}
 		} else {
-			fmt.Fprintf(os.Stderr, "- %v\n", err)
+			fmt.Fprintln(os.Stderr, color.RedString("- %v", err))
 		}
-		fmt.Fprintf(os.Stderr, "\n")
+		fmt.Fprintln(os.Stderr)
 	}
 
 	if err := rootCmd.Execute(); err != nil {
