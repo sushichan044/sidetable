@@ -66,8 +66,11 @@ func FindConfigPath() (string, error) {
 		return "", err
 	}
 
-	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
-		return "", ErrConfigNotFound
+	if _, statErr := os.Stat(path); statErr != nil {
+		if os.IsNotExist(statErr) {
+			return "", ErrConfigNotFound
+		}
+		return "", statErr
 	}
 
 	return path, nil
