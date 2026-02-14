@@ -87,9 +87,6 @@ func buildProjectCommands(project *sidetable.Project) []*cobra.Command {
 				return project.Execute(act)
 			},
 		}
-		if info.Alias != "" {
-			subCmd.Aliases = []string{info.Alias}
-		}
 		cmds = append(cmds, subCmd)
 	}
 

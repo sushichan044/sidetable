@@ -19,8 +19,6 @@ commands:
   #     GHQ_ROOT: "{{.CommandDir}}"
   #   # Optional. Description shown in `sidetable list`.
   #   description: "ghq wrapper with project-local root"
-  #   # Optional. Short alias.
-  #   alias: "gg"
 
   # note:
   #   # You can reference the config directory.
@@ -30,7 +28,19 @@ commands:
   #     append:
   #       - "{{.CommandDir}}/note.md"
   #   description: "Open project note file"
-  #   alias: "n"
+
+# Optional. Define aliases as shortcuts to commands.
+# aliases:
+#   gg:
+#     command: "ghq"
+#     args:
+#       prepend:
+#         - "get"
+#     env:
+#       GHQ_ROOT: "{{.CommandDir}}"
+#     description: "ghq get shortcut"
+#   n:
+#     command: "note"
 
 # Template variables (available in command/args/env/description):
 # - {{.ProjectDir}}: current directory (absolute path)

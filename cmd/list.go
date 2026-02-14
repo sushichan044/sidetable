@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -15,7 +14,7 @@ var listCmd = &cobra.Command{
 	Short: "List available commands",
 	Long: `List available commands defined in the sidetable configuration for the current project.
 
-The output shows command name, alias, and description for each configured command.`,
+The output shows command/alias name, kind, target, and description for each configured command.`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -36,7 +35,10 @@ The output shows command name, alias, and description for each configured comman
 			spacing.Column(), // Command Name
 			//nolint:mnd // Justification: fixed spacing value for better readability
 			spacing.MinSpacing(2),
-			spacing.Column(), // Alias
+			spacing.Column(), // Kind
+			//nolint:mnd // Justification: fixed spacing value for better readability
+			spacing.MinSpacing(4),
+			spacing.Column(), // Target
 			//nolint:mnd // Justification: fixed spacing value for better readability
 			spacing.MinSpacing(4),
 			spacing.Column(), // Description
@@ -44,11 +46,11 @@ The output shows command name, alias, and description for each configured comman
 
 		rows := make([][]string, 0, len(cmds))
 		for _, info := range cmds {
-			alias := info.Alias
-			if alias != "" {
-				alias = fmt.Sprintf("(%s)", alias)
+			target := "-"
+			if info.Kind == "alias" {
+				target = info.Target
 			}
-			rows = append(rows, []string{info.Name, alias, info.Description})
+			rows = append(rows, []string{info.Name, info.Kind, target, info.Description})
 		}
 		if fmtErr := formatter.AddRows(rows...); fmtErr != nil {
 			return fmtErr

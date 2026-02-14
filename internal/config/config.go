@@ -23,12 +23,19 @@ var (
 	ErrCommandMustNotContainSpaces = errors.New("command must not contain spaces")
 	ErrAliasDuplicate              = errors.New("alias is duplicated")
 	ErrAliasConflictsWithCommand   = errors.New("alias conflicts with command name")
+	ErrAliasConflictsWithBuiltin   = errors.New("alias conflicts with builtin command")
+	ErrAliasNameRequired           = errors.New("alias name is required")
+	ErrAliasMustNotContainSpaces   = errors.New("alias must not contain spaces")
+	ErrAliasCommandRequired        = errors.New("alias command is required")
+	ErrAliasTargetUnknown          = errors.New("alias command not found")
+	ErrLegacyCommandAliasRemoved   = errors.New("commands.<name>.alias has been removed; use top-level aliases")
 )
 
 // Config represents configuration file structure.
 type Config struct {
 	Directory string             `yaml:"directory"` // User's private directory per project
 	Commands  map[string]Command `yaml:"commands"`
+	Aliases   map[string]Alias   `yaml:"aliases"`
 	ConfigDir string             `yaml:"-"` // INTERNAL: Directory of the loaded config file
 }
 
@@ -38,7 +45,15 @@ type Command struct {
 	Args        Args              `yaml:"args"`
 	Env         map[string]string `yaml:"env"`
 	Description string            `yaml:"description"`
-	Alias       string            `yaml:"alias"`
+	LegacyAlias *string           `yaml:"alias"`
+}
+
+// Alias represents a command alias configuration.
+type Alias struct {
+	Command     string            `yaml:"command"`
+	Args        Args              `yaml:"args"`
+	Env         map[string]string `yaml:"env"`
+	Description string            `yaml:"description"`
 }
 
 // Args represents user-arg injection configuration.
@@ -55,6 +70,9 @@ type ResolvedCommand struct {
 	// Empty if invoked by the original command name.
 	AliasName string
 	AliasArgs *Args
+	AliasEnv  map[string]string
+	// DisplayName is the resolved CLI entrypoint name (command or alias).
+	DisplayName string
 }
 
 const configDirEnv = "SIDETABLE_CONFIG_DIR"
@@ -127,7 +145,17 @@ func (c *Config) Validate() error {
 		return ErrCommandsMissing
 	}
 
-	aliasSeen := map[string]struct{}{}
+	if err := c.validateCommands(); err != nil {
+		return err
+	}
+	if err := c.validateAliases(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Config) validateCommands() error {
 	for name, cmd := range c.Commands {
 		if strings.TrimSpace(cmd.Command) == "" {
 			return fmt.Errorf("command %q: %w", name, ErrCommandRequired)
@@ -135,16 +163,34 @@ func (c *Config) Validate() error {
 		if strings.ContainsAny(cmd.Command, " \t\n\r") {
 			return fmt.Errorf("command %q: %w", name, ErrCommandMustNotContainSpaces)
 		}
-		if cmd.Alias == "" {
-			continue
+		if cmd.LegacyAlias != nil {
+			return fmt.Errorf("command %q: %w", name, ErrLegacyCommandAliasRemoved)
 		}
-		if _, exists := c.Commands[cmd.Alias]; exists {
-			return fmt.Errorf("command %q: %w", name, ErrAliasConflictsWithCommand)
+	}
+
+	return nil
+}
+
+func (c *Config) validateAliases() error {
+	for aliasName, alias := range c.Aliases {
+		if strings.TrimSpace(aliasName) == "" {
+			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasNameRequired)
 		}
-		if _, exists := aliasSeen[cmd.Alias]; exists {
-			return fmt.Errorf("command %q: %w", name, ErrAliasDuplicate)
+		if strings.ContainsAny(aliasName, " \t\n\r") {
+			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasMustNotContainSpaces)
 		}
-		aliasSeen[cmd.Alias] = struct{}{}
+		if strings.TrimSpace(alias.Command) == "" {
+			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasCommandRequired)
+		}
+		if _, exists := c.Commands[aliasName]; exists {
+			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithCommand)
+		}
+		if isBuiltinCommandName(aliasName) {
+			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithBuiltin)
+		}
+		if _, exists := c.Commands[alias.Command]; !exists {
+			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasTargetUnknown)
+		}
 	}
 
 	return nil
@@ -154,23 +200,31 @@ func (c *Config) Validate() error {
 func (c *Config) ResolveCommand(name string) (*ResolvedCommand, error) {
 	if cmd, ok := c.Commands[name]; ok {
 		return &ResolvedCommand{
-			Name:      name,
-			Command:   cmd,
-			AliasName: "",
-			AliasArgs: nil,
+			Name:        name,
+			Command:     cmd,
+			AliasName:   "",
+			AliasArgs:   nil,
+			AliasEnv:    nil,
+			DisplayName: name,
 		}, nil
 	}
-	for cmdName, cmd := range c.Commands {
-		if cmd.Alias == name {
-			return &ResolvedCommand{
-				Name:      cmdName,
-				Command:   cmd,
-				AliasName: name,
-				AliasArgs: nil,
-			}, nil
-		}
+	alias, ok := c.Aliases[name]
+	if !ok {
+		return nil, ErrCommandUnknown
 	}
-	return nil, ErrCommandUnknown
+	cmd, ok := c.Commands[alias.Command]
+	if !ok {
+		return nil, ErrCommandUnknown
+	}
+
+	return &ResolvedCommand{
+		Name:        alias.Command,
+		Command:     cmd,
+		AliasName:   name,
+		AliasArgs:   &alias.Args,
+		AliasEnv:    alias.Env,
+		DisplayName: name,
+	}, nil
 }
 
 // CommandNames returns sorted command names.
@@ -181,4 +235,13 @@ func (c *Config) CommandNames() []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+func isBuiltinCommandName(name string) bool {
+	switch name {
+	case "list", "completion", "doctor", "init", "help":
+		return true
+	default:
+		return false
+	}
 }

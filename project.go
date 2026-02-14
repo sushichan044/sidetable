@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/sushichan044/sidetable/internal/action"
 	"github.com/sushichan044/sidetable/internal/config"
@@ -12,7 +13,8 @@ import (
 // CommandInfo represents a resolved command entry.
 type CommandInfo struct {
 	Name        string
-	Alias       string
+	Kind        string
+	Target      string
 	Description string
 }
 
@@ -66,7 +68,7 @@ func (p *Project) ListCommands() ([]CommandInfo, error) {
 	if p == nil || p.config == nil {
 		return nil, errors.New("project is not initialized")
 	}
-	result := make([]CommandInfo, 0, len(p.config.Commands))
+	result := make([]CommandInfo, 0, len(p.config.Commands)+len(p.config.Aliases))
 	for _, name := range p.config.CommandNames() {
 		commandCfg := p.config.Commands[name]
 		desc, err := renderDescription(
@@ -81,7 +83,34 @@ func (p *Project) ListCommands() ([]CommandInfo, error) {
 		}
 		result = append(result, CommandInfo{
 			Name:        name,
-			Alias:       commandCfg.Alias,
+			Kind:        "command",
+			Target:      name,
+			Description: desc,
+		})
+	}
+
+	aliasNames := make([]string, 0, len(p.config.Aliases))
+	for aliasName := range p.config.Aliases {
+		aliasNames = append(aliasNames, aliasName)
+	}
+	sort.Strings(aliasNames)
+
+	for _, aliasName := range aliasNames {
+		aliasCfg := p.config.Aliases[aliasName]
+		desc, err := renderDescription(
+			aliasCfg.Description,
+			p.projectDir,
+			p.config.Directory,
+			aliasCfg.Command,
+			p.config.ConfigDir,
+		)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, CommandInfo{
+			Name:        aliasName,
+			Kind:        "alias",
+			Target:      aliasCfg.Command,
 			Description: desc,
 		})
 	}

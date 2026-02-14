@@ -14,7 +14,7 @@ var doctorCmd = &cobra.Command{
 	Short: "Check configuration for issues",
 	Long: `Check sidetable configuration for common problems in the current project.
 
-Doctor validates command names and aliases and reports conflicts with built-in commands such as "list", "doctor", and "completion".`,
+Doctor validates command and alias names and reports conflicts with built-in commands such as "list", "doctor", and "completion".`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -34,10 +34,7 @@ Doctor validates command names and aliases and reports conflicts with built-in c
 
 		for _, info := range cmds {
 			if isBuiltinCommand(info.Name) {
-				errs = append(errs, fmt.Errorf("⚠️  command %q conflicts with builtin command", info.Name))
-			}
-			if info.Alias != "" && isBuiltinCommand(info.Alias) {
-				errs = append(errs, fmt.Errorf("⚠️  command alias %q conflicts with builtin command", info.Alias))
+				errs = append(errs, fmt.Errorf("⚠️  %s %q conflicts with builtin command", info.Kind, info.Name))
 			}
 		}
 

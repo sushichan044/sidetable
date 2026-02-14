@@ -89,7 +89,7 @@ func Build(cfg *config.Config, name string, userArgs []string, projectDir string
 		return nil, err
 	}
 
-	env, err := buildEnv(cmd.Env, ctx)
+	env, err := buildEnvWithAlias(cmd.Env, resolved.AliasEnv, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -199,14 +199,25 @@ func buildArgList(args []string, ctx templateContext) ([]string, error) {
 	return result, nil
 }
 
-func buildEnv(env map[string]string, ctx templateContext) ([]string, error) {
+func buildEnvWithAlias(
+	commandEnv map[string]string,
+	aliasEnv map[string]string,
+	ctx templateContext,
+) ([]string, error) {
 	base := os.Environ()
-	if len(env) == 0 {
+	if len(commandEnv) == 0 && len(aliasEnv) == 0 {
 		return base, nil
 	}
 
-	overrides := make(map[string]string, len(env))
-	for key, raw := range env {
+	overrides := make(map[string]string, len(commandEnv)+len(aliasEnv))
+	for key, raw := range commandEnv {
+		value, err := evalTemplate(raw, ctx)
+		if err != nil {
+			return nil, err
+		}
+		overrides[key] = value
+	}
+	for key, raw := range aliasEnv {
 		value, err := evalTemplate(raw, ctx)
 		if err != nil {
 			return nil, err

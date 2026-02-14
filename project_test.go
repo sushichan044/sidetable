@@ -101,13 +101,17 @@ func TestProjectListCommandsSuccess(t *testing.T) {
 		Commands: map[string]config.Command{
 			"zeta": {
 				Command:     "cmd-zeta",
-				Alias:       "z",
 				Description: "Command: {{.CommandDir}}",
 			},
 			"alpha": {
 				Command:     "cmd-alpha",
-				Alias:       "a",
 				Description: "Project: {{.ProjectDir}}",
+			},
+		},
+		Aliases: map[string]config.Alias{
+			"a": {
+				Command:     "alpha",
+				Description: "alpha alias",
 			},
 		},
 	}
@@ -120,16 +124,23 @@ func TestProjectListCommandsSuccess(t *testing.T) {
 
 	commands, err := project.ListCommands()
 	require.NoError(t, err)
-	require.Len(t, commands, 2)
+	require.Len(t, commands, 3)
 
 	require.Equal(t, "alpha", commands[0].Name)
-	require.Equal(t, "a", commands[0].Alias)
+	require.Equal(t, "command", commands[0].Kind)
+	require.Equal(t, "alpha", commands[0].Target)
 	require.Equal(t, "Project: "+projectDir, commands[0].Description)
 
-	expectedCommandDir := filepath.Join(projectDir, ".private", "zeta")
 	require.Equal(t, "zeta", commands[1].Name)
-	require.Equal(t, "z", commands[1].Alias)
+	require.Equal(t, "command", commands[1].Kind)
+	require.Equal(t, "zeta", commands[1].Target)
+	expectedCommandDir := filepath.Join(projectDir, ".private", "zeta")
 	require.Equal(t, "Command: "+expectedCommandDir, commands[1].Description)
+
+	require.Equal(t, "a", commands[2].Name)
+	require.Equal(t, "alias", commands[2].Kind)
+	require.Equal(t, "alpha", commands[2].Target)
+	require.Equal(t, "alpha alias", commands[2].Description)
 }
 
 func TestProjectListCommandsTemplateError(t *testing.T) {

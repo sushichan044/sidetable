@@ -61,6 +61,29 @@ func TestBuildArgsNoArgsSpecified(t *testing.T) {
 	require.Equal(t, []string{"x"}, spec.Args)
 }
 
+func TestBuildArgsWithAliasAppend(t *testing.T) {
+	cfg := &config.Config{
+		Directory: ".private",
+		Commands: map[string]config.Command{
+			"ghq": {
+				Command: "ghq",
+			},
+		},
+		Aliases: map[string]config.Alias{
+			"gg": {
+				Command: "ghq",
+				Args: config.Args{
+					Prepend: []string{"get"},
+				},
+			},
+		},
+	}
+
+	spec, err := action.Build(cfg, "gg", []string{"https://github.com/example/repo"}, t.TempDir())
+	require.NoError(t, err)
+	require.Equal(t, []string{"get", "https://github.com/example/repo"}, spec.Args)
+}
+
 func TestBuildArgsAppendOnly(t *testing.T) {
 	cfg := &config.Config{
 		Directory: ".private",
@@ -265,5 +288,31 @@ func TestBuildEnvMerge(t *testing.T) {
 		spec, err := action.Build(cfg, "tool", []string{}, projectDir)
 		require.NoError(t, err)
 		require.NotEmpty(t, spec.Env)
+	})
+
+	t.Run("alias_env_overrides_command_env", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"tool": {
+					Command: "tool",
+					Env:     map[string]string{"ROOT": "command"},
+				},
+			},
+			Aliases: map[string]config.Alias{
+				"tt": {
+					Command: "tool",
+					Env: map[string]string{
+						"ROOT": "alias",
+						"NEW":  "x",
+					},
+				},
+			},
+		}
+
+		spec, err := action.Build(cfg, "tt", []string{}, projectDir)
+		require.NoError(t, err)
+		require.Contains(t, spec.Env, "ROOT=alias")
+		require.Contains(t, spec.Env, "NEW=x")
 	})
 }
