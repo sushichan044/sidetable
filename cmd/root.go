@@ -66,13 +66,8 @@ func buildProjectCommands(project *sidetable.Project) []*cobra.Command {
 		return nil
 	}
 
-	cmds := make([]*cobra.Command, 0, len(commands))
-	for _, info := range commands {
-		if isBuiltinCommand(info.Name) {
-			// Skip built-in commands to avoid conflict
-			continue
-		}
-
+	cmds := make([]*cobra.Command, 0, len(commands.Commands)+len(commands.Aliases))
+	for _, info := range commands.Commands {
 		subCmd := &cobra.Command{
 			Use:                info.Name,
 			Short:              info.Description,
@@ -87,8 +82,23 @@ func buildProjectCommands(project *sidetable.Project) []*cobra.Command {
 				return project.Execute(act)
 			},
 		}
-		if info.Alias != "" {
-			subCmd.Aliases = []string{info.Alias}
+		cmds = append(cmds, subCmd)
+	}
+
+	for _, info := range commands.Aliases {
+		subCmd := &cobra.Command{
+			Use:                info.Name,
+			Short:              info.Description,
+			DisableFlagParsing: true,
+			SilenceErrors:      true,
+			SilenceUsage:       true,
+			RunE: func(_ *cobra.Command, args []string) error {
+				act, buildErr := project.BuildAction(info.Name, args)
+				if buildErr != nil {
+					return buildErr
+				}
+				return project.Execute(act)
+			},
 		}
 		cmds = append(cmds, subCmd)
 	}

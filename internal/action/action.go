@@ -199,14 +199,14 @@ func buildArgList(args []string, ctx templateContext) ([]string, error) {
 	return result, nil
 }
 
-func buildEnv(env map[string]string, ctx templateContext) ([]string, error) {
+func buildEnv(commandEnv map[string]string, ctx templateContext) ([]string, error) {
 	base := os.Environ()
-	if len(env) == 0 {
+	if len(commandEnv) == 0 {
 		return base, nil
 	}
 
-	overrides := make(map[string]string, len(env))
-	for key, raw := range env {
+	overrides := make(map[string]string, len(commandEnv))
+	for key, raw := range commandEnv {
 		value, err := evalTemplate(raw, ctx)
 		if err != nil {
 			return nil, err

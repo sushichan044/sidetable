@@ -61,6 +61,29 @@ func TestBuildArgsNoArgsSpecified(t *testing.T) {
 	require.Equal(t, []string{"x"}, spec.Args)
 }
 
+func TestBuildArgsWithAliasPrepend(t *testing.T) {
+	cfg := &config.Config{
+		Directory: ".private",
+		Commands: map[string]config.Command{
+			"ghq": {
+				Command: "ghq",
+			},
+		},
+		Aliases: map[string]config.Alias{
+			"gg": {
+				Command: "ghq",
+				Args: config.Args{
+					Prepend: []string{"get"},
+				},
+			},
+		},
+	}
+
+	spec, err := action.Build(cfg, "gg", []string{"https://github.com/example/repo"}, t.TempDir())
+	require.NoError(t, err)
+	require.Equal(t, []string{"get", "https://github.com/example/repo"}, spec.Args)
+}
+
 func TestBuildArgsAppendOnly(t *testing.T) {
 	cfg := &config.Config{
 		Directory: ".private",

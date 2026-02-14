@@ -47,10 +47,12 @@ commands:
   hello:
     command: echo
     description: hello command
-    alias: h
   list:
     command: echo
     description: conflicts with builtin and must be ignored
+aliases:
+  h:
+    command: hello
 `
 	require.NoError(t, os.WriteFile(configPath, []byte(content), 0o644))
 	t.Setenv("SIDETABLE_CONFIG_DIR", configDir)
@@ -69,7 +71,7 @@ commands:
 
 	found, _, err = root.Find([]string{"h"})
 	require.NoError(t, err)
-	require.Equal(t, "hello", found.Name())
+	require.Equal(t, "h", found.Name())
 
 	_, _, err = root.Find([]string{"list"})
 	require.Error(t, err)

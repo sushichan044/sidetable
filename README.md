@@ -79,28 +79,32 @@ $ sidetable --version
 Example configuration for project-local Git repository management:
 
 ```yaml
-directory: ".local"
+directory: ".private"
 
 commands:
   ghq:
     command: "ghq"
-    args:
-      prepend:
-        - "get"
     env:
       GHQ_ROOT: "{{.CommandDir}}" # See Configuration section for details
     description: "Manage repositories in project-local directory"
-    alias: "q"
+aliases:
+  q:
+    command: "ghq"
+    args:
+      prepend:
+        - "get"
+        - "-u"
+    description: "Clone repository into project-local directory"
 ```
 
 Example:
 
 ```bash
 $ cd ~/myproject
-$ sidetable ghq https://github.com/example/repo
-# Or you can use alias: `sidetable q https://github.com/example/repo`
+$ sidetable q https://github.com/example/repo
+# Or you can call the original command: `sidetable ghq get -u https://github.com/example/repo`
 #
-# => cloned into ~/myproject/.local/ghq/github.com/example/repo
+# => cloned into ~/myproject/.private/ghq/github.com/example/repo
 ```
 
 ### Shell Completion
@@ -155,8 +159,6 @@ commands:
       GHQ_ROOT: "{{.CommandDir}}"
     # Optional. Description shown in `sidetable list`.
     description: "ghq wrapper with project-local root"
-    # Optional. Short alias for the command.
-    alias: "gg"
 
   note:
     # You can use `{{.ConfigDir}}` to get the configuration directory path.
@@ -167,7 +169,14 @@ commands:
       append:
         - "{{.CommandDir}}/note.md"
     description: "Open project note file"
-    alias: "n"
+
+aliases:
+  gg:
+    # Required. Target command name defined in `commands`.
+    command: "ghq"
+    description: "ghq get shortcut"
+  n:
+    command: "note"
 ```
 
 ### Template variables
@@ -183,10 +192,11 @@ Each string in `command`, `args`, `env`, and `description` is evaluated as a Go 
 
 ### Argument injection rules
 
-`args.prepend` and `args.append` are evaluated as templates, then combined as:
+`args.prepend` and `args.append` are evaluated as templates.
+Execution args are combined as:
 
 ```text
-prepend + userArgs + append
+alias.prepend + command.prepend + userArgs + command.append + alias.append
 ```
 
 Example:
@@ -200,11 +210,20 @@ commands:
         - "--flag"
       append:
         - "--output=result.txt"
+aliases:
+  ex:
+    command: "example"
+    args:
+      prepend:
+        - "--alias-start"
+      append:
+        - "--alias-end"
 ```
 
 ```bash
-$ sidetable example arg1 arg2
-# Executed command: mycommand --flag arg1 arg2 --output=result.txt
+$ sidetable ex arg1 arg2
+# Executed command:
+# mycommand --alias-start --flag arg1 arg2 --output=result.txt --alias-end
 ```
 
 ## Development

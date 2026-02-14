@@ -101,13 +101,17 @@ func TestProjectListCommandsSuccess(t *testing.T) {
 		Commands: map[string]config.Command{
 			"zeta": {
 				Command:     "cmd-zeta",
-				Alias:       "z",
 				Description: "Command: {{.CommandDir}}",
 			},
 			"alpha": {
 				Command:     "cmd-alpha",
-				Alias:       "a",
 				Description: "Project: {{.ProjectDir}}",
+			},
+		},
+		Aliases: map[string]config.Alias{
+			"a": {
+				Command:     "alpha",
+				Description: "alpha alias",
 			},
 		},
 	}
@@ -120,16 +124,20 @@ func TestProjectListCommandsSuccess(t *testing.T) {
 
 	commands, err := project.ListCommands()
 	require.NoError(t, err)
-	require.Len(t, commands, 2)
+	require.Len(t, commands.Commands, 2)
+	require.Len(t, commands.Aliases, 1)
+	require.Empty(t, commands.Invalid)
 
-	require.Equal(t, "alpha", commands[0].Name)
-	require.Equal(t, "a", commands[0].Alias)
-	require.Equal(t, "Project: "+projectDir, commands[0].Description)
+	require.Equal(t, "alpha", commands.Commands[0].Name)
+	require.Equal(t, "Project: "+projectDir, commands.Commands[0].Description)
 
+	require.Equal(t, "zeta", commands.Commands[1].Name)
 	expectedCommandDir := filepath.Join(projectDir, ".private", "zeta")
-	require.Equal(t, "zeta", commands[1].Name)
-	require.Equal(t, "z", commands[1].Alias)
-	require.Equal(t, "Command: "+expectedCommandDir, commands[1].Description)
+	require.Equal(t, "Command: "+expectedCommandDir, commands.Commands[1].Description)
+
+	require.Equal(t, "a", commands.Aliases[0].Name)
+	require.Equal(t, "alpha", commands.Aliases[0].Target)
+	require.Equal(t, "alpha alias", commands.Aliases[0].Description)
 }
 
 func TestProjectListCommandsTemplateError(t *testing.T) {
@@ -153,6 +161,53 @@ func TestProjectListCommandsTemplateError(t *testing.T) {
 
 	_, err = project.ListCommands()
 	require.Error(t, err)
+}
+
+func TestProjectListCommandsInvalidBuiltinConflicts(t *testing.T) {
+	projectDir := filepath.Join(t.TempDir(), "proj")
+	require.NoError(t, os.MkdirAll(projectDir, 0o755))
+
+	cfg := &config.Config{
+		Directory: ".private",
+		Commands: map[string]config.Command{
+			"hello": {
+				Command:     "echo",
+				Description: "hello command",
+			},
+			"list": {
+				Command:     "echo",
+				Description: "conflicting command",
+			},
+		},
+		Aliases: map[string]config.Alias{
+			"doctor": {
+				Command:     "hello",
+				Description: "conflicting alias",
+			},
+		},
+	}
+
+	err := setupProject(t, cfg)
+	require.NoError(t, err)
+
+	project, err := sidetable.NewProject(projectDir)
+	require.NoError(t, err)
+
+	commands, err := project.ListCommands()
+	require.NoError(t, err)
+
+	require.Len(t, commands.Commands, 1)
+	require.Equal(t, "hello", commands.Commands[0].Name)
+	require.Empty(t, commands.Aliases)
+	require.Len(t, commands.Invalid, 2)
+
+	require.Equal(t, "list", commands.Invalid[0].Name)
+	require.Equal(t, "command", commands.Invalid[0].Kind)
+	require.Equal(t, "conflicts with builtin command", commands.Invalid[0].Reason)
+
+	require.Equal(t, "doctor", commands.Invalid[1].Name)
+	require.Equal(t, "alias", commands.Invalid[1].Kind)
+	require.Equal(t, "conflicts with builtin command", commands.Invalid[1].Reason)
 }
 
 func TestProjectBuildActionValidation(t *testing.T) {
