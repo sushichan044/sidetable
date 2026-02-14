@@ -290,29 +290,4 @@ func TestBuildEnvMerge(t *testing.T) {
 		require.NotEmpty(t, spec.Env)
 	})
 
-	t.Run("alias_env_overrides_command_env", func(t *testing.T) {
-		cfg := &config.Config{
-			Directory: ".private",
-			Commands: map[string]config.Command{
-				"tool": {
-					Command: "tool",
-					Env:     map[string]string{"ROOT": "command"},
-				},
-			},
-			Aliases: map[string]config.Alias{
-				"tt": {
-					Command: "tool",
-					Env: map[string]string{
-						"ROOT": "alias",
-						"NEW":  "x",
-					},
-				},
-			},
-		}
-
-		spec, err := action.Build(cfg, "tt", []string{}, projectDir)
-		require.NoError(t, err)
-		require.Contains(t, spec.Env, "ROOT=alias")
-		require.Contains(t, spec.Env, "NEW=x")
-	})
 }

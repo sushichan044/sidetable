@@ -53,7 +53,6 @@ type Command struct {
 type Alias struct {
 	Command     string            `yaml:"command"`
 	Args        Args              `yaml:"args"`
-	Env         map[string]string `yaml:"env"`
 	Description string            `yaml:"description"`
 }
 
@@ -71,7 +70,6 @@ type ResolvedCommand struct {
 	// Empty if invoked by the original command name.
 	AliasName string
 	AliasArgs *Args
-	AliasEnv  map[string]string
 	// DisplayName is the resolved CLI entrypoint name (command or alias).
 	DisplayName string
 }
@@ -202,7 +200,6 @@ func (c *Config) ResolveCommand(name string) (*ResolvedCommand, error) {
 			Command:     cmd,
 			AliasName:   "",
 			AliasArgs:   nil,
-			AliasEnv:    nil,
 			DisplayName: name,
 		}, nil
 	}
@@ -220,7 +217,6 @@ func (c *Config) ResolveCommand(name string) (*ResolvedCommand, error) {
 		Command:     cmd,
 		AliasName:   name,
 		AliasArgs:   &alias.Args,
-		AliasEnv:    alias.Env,
 		DisplayName: name,
 	}, nil
 }

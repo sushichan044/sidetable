@@ -36,8 +36,6 @@ commands:
 #     args:
 #       prepend:
 #         - "get"
-#     env:
-#       GHQ_ROOT: "{{.CommandDir}}"
 #     description: "ghq get shortcut"
 #   n:
 #     command: "note"

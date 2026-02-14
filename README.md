@@ -174,9 +174,6 @@ aliases:
   gg:
     # Required. Target command name defined in `commands`.
     command: "ghq"
-    # Optional. Alias-specific env overrides command env.
-    env:
-      GHQ_ROOT: "{{.CommandDir}}"
     description: "ghq get shortcut"
   n:
     command: "note"
