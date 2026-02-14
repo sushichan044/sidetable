@@ -79,7 +79,7 @@ $ sidetable --version
 Example configuration for project-local Git repository management:
 
 ```yaml
-directory: ".local"
+directory: ".private"
 
 commands:
   ghq:
@@ -93,6 +93,8 @@ aliases:
     args:
       prepend:
         - "get"
+        - "-u"
+    description: "Clone repository into project-local directory"
 ```
 
 Example:
@@ -100,9 +102,9 @@ Example:
 ```bash
 $ cd ~/myproject
 $ sidetable q https://github.com/example/repo
-# Or you can call the original command: `sidetable ghq get https://github.com/example/repo`
+# Or you can call the original command: `sidetable ghq get -u https://github.com/example/repo`
 #
-# => cloned into ~/myproject/.local/ghq/github.com/example/repo
+# => cloned into ~/myproject/.private/ghq/github.com/example/repo
 ```
 
 ### Shell Completion
