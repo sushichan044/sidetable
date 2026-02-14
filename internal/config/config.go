@@ -51,9 +51,9 @@ type Command struct {
 
 // Alias represents a command alias configuration.
 type Alias struct {
-	Command     string            `yaml:"command"`
-	Args        Args              `yaml:"args"`
-	Description string            `yaml:"description"`
+	Command     string `yaml:"command"`
+	Args        Args   `yaml:"args"`
+	Description string `yaml:"description"`
 }
 
 // Args represents user-arg injection configuration.
