@@ -24,7 +24,7 @@ func TestResolvePath(t *testing.T) {
 		require.NoError(t, os.WriteFile(ymlPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
 		path, err := config.FindConfigPath()
 		require.NoError(t, err)
-		require.YAMLEq(t, ymlPath, path)
+		require.Equal(t, ymlPath, path)
 		require.NoError(t, os.Remove(ymlPath))
 	})
 
@@ -71,7 +71,7 @@ func TestResolvePathFallbackXDG(t *testing.T) {
 
 	path, err := config.FindConfigPath()
 	require.NoError(t, err)
-	require.YAMLEq(t, ymlPath, path)
+	require.Equal(t, ymlPath, path)
 }
 
 func TestValidate(t *testing.T) {
@@ -131,6 +131,16 @@ func TestValidate(t *testing.T) {
 			Commands:  map[string]config.Command{"a": {Command: "bad cmd"}},
 		}
 		require.ErrorIs(t, cfg.Validate(), config.ErrCommandMustNotContainSpaces)
+	})
+
+	t.Run("command collides with builtin", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory: ".private",
+			Commands: map[string]config.Command{
+				"list": {Command: "ghq"},
+			},
+		}
+		require.ErrorIs(t, cfg.Validate(), config.ErrCommandConflictsWithBuiltin)
 	})
 
 	t.Run("legacy alias is removed", func(t *testing.T) {

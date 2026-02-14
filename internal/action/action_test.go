@@ -61,7 +61,7 @@ func TestBuildArgsNoArgsSpecified(t *testing.T) {
 	require.Equal(t, []string{"x"}, spec.Args)
 }
 
-func TestBuildArgsWithAliasAppend(t *testing.T) {
+func TestBuildArgsWithAliasPrepend(t *testing.T) {
 	cfg := &config.Config{
 		Directory: ".private",
 		Commands: map[string]config.Command{

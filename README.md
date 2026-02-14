@@ -172,10 +172,6 @@ aliases:
   gg:
     # Required. Target command name defined in `commands`.
     command: "ghq"
-    # Optional. Alias-specific args.
-    args:
-      prepend:
-        - "get"
     # Optional. Alias-specific env overrides command env.
     env:
       GHQ_ROOT: "{{.CommandDir}}"
@@ -215,11 +211,20 @@ commands:
         - "--flag"
       append:
         - "--output=result.txt"
+aliases:
+  ex:
+    command: "example"
+    args:
+      prepend:
+        - "--alias-start"
+      append:
+        - "--alias-end"
 ```
 
 ```bash
-$ sidetable example arg1 arg2
-# Executed command: mycommand --flag arg1 arg2 --output=result.txt
+$ sidetable ex arg1 arg2
+# Executed command:
+# mycommand --alias-start --flag arg1 arg2 --output=result.txt --alias-end
 ```
 
 ## Development

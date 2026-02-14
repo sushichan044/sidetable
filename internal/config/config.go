@@ -10,6 +10,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
+	"github.com/sushichan044/sidetable/internal/builtin"
 	"github.com/sushichan044/sidetable/internal/xdg"
 )
 
@@ -21,6 +22,7 @@ var (
 	ErrDirectoryMustBeRelative     = errors.New("directory must be relative")
 	ErrCommandRequired             = errors.New("command is required")
 	ErrCommandMustNotContainSpaces = errors.New("command must not contain spaces")
+	ErrCommandConflictsWithBuiltin = errors.New("command conflicts with builtin command")
 	ErrAliasDuplicate              = errors.New("alias is duplicated")
 	ErrAliasConflictsWithCommand   = errors.New("alias conflicts with command name")
 	ErrAliasConflictsWithBuiltin   = errors.New("alias conflicts with builtin command")
@@ -157,6 +159,9 @@ func (c *Config) Validate() error {
 
 func (c *Config) validateCommands() error {
 	for name, cmd := range c.Commands {
+		if builtin.IsReservedCommand(name) {
+			return fmt.Errorf("command %q: %w", name, ErrCommandConflictsWithBuiltin)
+		}
 		if strings.TrimSpace(cmd.Command) == "" {
 			return fmt.Errorf("command %q: %w", name, ErrCommandRequired)
 		}
@@ -185,7 +190,7 @@ func (c *Config) validateAliases() error {
 		if _, exists := c.Commands[aliasName]; exists {
 			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithCommand)
 		}
-		if isBuiltinCommandName(aliasName) {
+		if builtin.IsReservedCommand(aliasName) {
 			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithBuiltin)
 		}
 		if _, exists := c.Commands[alias.Command]; !exists {
@@ -235,13 +240,4 @@ func (c *Config) CommandNames() []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-func isBuiltinCommandName(name string) bool {
-	switch name {
-	case "list", "completion", "doctor", "init", "help":
-		return true
-	default:
-		return false
-	}
 }

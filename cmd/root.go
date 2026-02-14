@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/sushichan044/sidetable"
+	"github.com/sushichan044/sidetable/internal/builtin"
 	"github.com/sushichan044/sidetable/internal/config"
 	"github.com/sushichan044/sidetable/version"
 )
@@ -68,7 +69,7 @@ func buildProjectCommands(project *sidetable.Project) []*cobra.Command {
 
 	cmds := make([]*cobra.Command, 0, len(commands))
 	for _, info := range commands {
-		if isBuiltinCommand(info.Name) {
+		if builtin.IsReservedCommand(info.Name) {
 			// Skip built-in commands to avoid conflict
 			continue
 		}
