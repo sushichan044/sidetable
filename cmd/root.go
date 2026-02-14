@@ -26,10 +26,10 @@ Use "sidetable list" to inspect available commands and "sidetable doctor" to val
 // Execute executes the root command and returns the exit code.
 func Execute() int {
 	if err := injectUserDefinedCommands(); err != nil {
-		if errors.Is(err, config.ErrCommandNotFound) {
+		if isNoCommandsWarningError(err) {
 			fmt.Fprintln(
 				os.Stderr,
-				"Warning: No commands defined in configuration. Run `sidetable init` to create a default config.",
+				"Warning: No commands defined in configuration. Add commands to config.yml, or run `sidetable init` to create a default config.",
 			)
 		} else {
 			fmt.Fprintln(
@@ -41,6 +41,10 @@ func Execute() int {
 
 	err := rootCmd.Execute()
 	return determineExitCode(err)
+}
+
+func isNoCommandsWarningError(err error) bool {
+	return errors.Is(err, config.ErrConfigMissing) || errors.Is(err, config.ErrCommandsMissing)
 }
 
 func determineExitCode(err error) int {

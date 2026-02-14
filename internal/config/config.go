@@ -14,14 +14,15 @@ import (
 )
 
 var (
-	ErrConfigNotFound       = errors.New("config.yml file not found")
-	ErrCommandNotFound      = errors.New("command not found")
-	ErrDirectoryMissing     = errors.New("directory is required")
-	ErrDirectoryAbsolute    = errors.New("directory must be relative")
-	ErrCommandMissing       = errors.New("command is required")
-	ErrCommandHasSpace      = errors.New("command must not contain spaces")
-	ErrAliasDuplicate       = errors.New("alias is duplicated")
-	ErrAliasCommandConflict = errors.New("alias conflicts with command name")
+	ErrConfigMissing               = errors.New("config.yml file not found")
+	ErrCommandsMissing             = errors.New("commands are required")
+	ErrCommandUnknown              = errors.New("command not found")
+	ErrDirectoryRequired           = errors.New("directory is required")
+	ErrDirectoryMustBeRelative     = errors.New("directory must be relative")
+	ErrCommandRequired             = errors.New("command is required")
+	ErrCommandMustNotContainSpaces = errors.New("command must not contain spaces")
+	ErrAliasDuplicate              = errors.New("alias is duplicated")
+	ErrAliasConflictsWithCommand   = errors.New("alias conflicts with command name")
 )
 
 // Config represents configuration file structure.
@@ -68,7 +69,7 @@ func FindConfigPath() (string, error) {
 
 	if _, statErr := os.Stat(path); statErr != nil {
 		if os.IsNotExist(statErr) {
-			return "", ErrConfigNotFound
+			return "", ErrConfigMissing
 		}
 		return "", statErr
 	}
@@ -117,25 +118,28 @@ func Load(path string) (*Config, error) {
 // Validate ensures config follows the specification.
 func (c *Config) Validate() error {
 	if strings.TrimSpace(c.Directory) == "" {
-		return ErrDirectoryMissing
+		return ErrDirectoryRequired
 	}
 	if filepath.IsAbs(c.Directory) {
-		return ErrDirectoryAbsolute
+		return ErrDirectoryMustBeRelative
+	}
+	if len(c.Commands) == 0 {
+		return ErrCommandsMissing
 	}
 
 	aliasSeen := map[string]struct{}{}
 	for name, cmd := range c.Commands {
 		if strings.TrimSpace(cmd.Command) == "" {
-			return fmt.Errorf("command %q: %w", name, ErrCommandMissing)
+			return fmt.Errorf("command %q: %w", name, ErrCommandRequired)
 		}
 		if strings.ContainsAny(cmd.Command, " \t\n\r") {
-			return fmt.Errorf("command %q: %w", name, ErrCommandHasSpace)
+			return fmt.Errorf("command %q: %w", name, ErrCommandMustNotContainSpaces)
 		}
 		if cmd.Alias == "" {
 			continue
 		}
 		if _, exists := c.Commands[cmd.Alias]; exists {
-			return fmt.Errorf("command %q: %w", name, ErrAliasCommandConflict)
+			return fmt.Errorf("command %q: %w", name, ErrAliasConflictsWithCommand)
 		}
 		if _, exists := aliasSeen[cmd.Alias]; exists {
 			return fmt.Errorf("command %q: %w", name, ErrAliasDuplicate)
@@ -166,7 +170,7 @@ func (c *Config) ResolveCommand(name string) (*ResolvedCommand, error) {
 			}, nil
 		}
 	}
-	return nil, ErrCommandNotFound
+	return nil, ErrCommandUnknown
 }
 
 // CommandNames returns sorted command names.

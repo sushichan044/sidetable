@@ -9,10 +9,10 @@ import (
 	"github.com/sushichan044/sidetable/internal/config"
 )
 
-func TestDefaultConfigYAMLValid(t *testing.T) {
+func TestDefaultConfigYAMLDefaultsToCommandsMissing(t *testing.T) {
 	require.NotEmpty(t, config.DefaultConfigYAML)
 
 	var cfg config.Config
 	require.NoError(t, yaml.Unmarshal(config.DefaultConfigYAML, &cfg))
-	require.NoError(t, cfg.Validate())
+	require.ErrorIs(t, cfg.Validate(), config.ErrCommandsMissing)
 }
