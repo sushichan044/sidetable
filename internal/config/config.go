@@ -10,6 +10,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
+	"github.com/sushichan044/sidetable/internal/builtin"
 	"github.com/sushichan044/sidetable/internal/xdg"
 )
 
@@ -134,62 +135,92 @@ func Load(path string) (*Config, error) {
 
 // Validate ensures config follows the specification.
 func (c *Config) Validate() error {
+	errs := make([]error, 0)
+
 	if strings.TrimSpace(c.Directory) == "" {
-		return ErrDirectoryRequired
+		errs = append(errs, ErrDirectoryRequired)
 	}
 	if filepath.IsAbs(c.Directory) {
-		return ErrDirectoryMustBeRelative
+		errs = append(errs, ErrDirectoryMustBeRelative)
 	}
 	if len(c.Commands) == 0 {
-		return ErrCommandsMissing
+		errs = append(errs, ErrCommandsMissing)
 	}
 
-	if err := c.validateCommands(); err != nil {
-		return err
-	}
-	if err := c.validateAliases(); err != nil {
-		return err
+	errs = append(errs, c.validateCommands()...)
+	errs = append(errs, c.validateAliases()...)
+
+	if len(errs) == 0 {
+		return nil
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
-func (c *Config) validateCommands() error {
-	for name, cmd := range c.Commands {
+func (c *Config) validateCommands() []error {
+	if len(c.Commands) == 0 {
+		return nil
+	}
+
+	commandNames := c.CommandNames()
+	errs := make([]error, 0)
+	for _, name := range commandNames {
+		cmd := c.Commands[name]
 		if strings.TrimSpace(cmd.Command) == "" {
-			return fmt.Errorf("command %q: %w", name, ErrCommandRequired)
+			errs = append(errs, fmt.Errorf("command %q: %w", name, ErrCommandRequired))
 		}
 		if strings.ContainsAny(cmd.Command, " \t\n\r") {
-			return fmt.Errorf("command %q: %w", name, ErrCommandMustNotContainSpaces)
+			errs = append(errs, fmt.Errorf("command %q: %w", name, ErrCommandMustNotContainSpaces))
+		}
+		if builtin.IsReservedCommand(name) {
+			errs = append(errs, fmt.Errorf("command %q: %w", name, ErrCommandConflictsWithBuiltin))
 		}
 		if cmd.LegacyAlias != nil {
-			return fmt.Errorf("command %q: %w", name, ErrLegacyCommandAliasRemoved)
+			errs = append(errs, fmt.Errorf("command %q: %w", name, ErrLegacyCommandAliasRemoved))
 		}
 	}
 
-	return nil
+	return errs
 }
 
-func (c *Config) validateAliases() error {
-	for aliasName, alias := range c.Aliases {
+func (c *Config) validateAliases() []error {
+	if len(c.Aliases) == 0 {
+		return nil
+	}
+
+	aliasNames := make([]string, 0, len(c.Aliases))
+	for aliasName := range c.Aliases {
+		aliasNames = append(aliasNames, aliasName)
+	}
+	sort.Strings(aliasNames)
+
+	errs := make([]error, 0)
+	for _, aliasName := range aliasNames {
+		alias := c.Aliases[aliasName]
 		if strings.TrimSpace(aliasName) == "" {
-			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasNameRequired)
+			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasNameRequired))
 		}
 		if strings.ContainsAny(aliasName, " \t\n\r") {
-			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasMustNotContainSpaces)
+			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasMustNotContainSpaces))
 		}
-		if strings.TrimSpace(alias.Command) == "" {
-			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasCommandRequired)
+		aliasCommand := strings.TrimSpace(alias.Command)
+		if aliasCommand == "" {
+			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasCommandRequired))
 		}
 		if _, exists := c.Commands[aliasName]; exists {
-			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithCommand)
+			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithCommand))
 		}
-		if _, exists := c.Commands[alias.Command]; !exists {
-			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasTargetUnknown)
+		if builtin.IsReservedCommand(aliasName) {
+			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithBuiltin))
+		}
+		if aliasCommand != "" {
+			if _, exists := c.Commands[aliasCommand]; !exists {
+				errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasTargetUnknown))
+			}
 		}
 	}
 
-	return nil
+	return errs
 }
 
 // ResolveCommand resolves command by name or alias.
