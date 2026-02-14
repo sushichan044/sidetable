@@ -140,7 +140,7 @@ func TestValidate(t *testing.T) {
 				"list": {Command: "ghq"},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrCommandConflictsWithBuiltin)
+		require.NoError(t, cfg.Validate())
 	})
 
 	t.Run("legacy alias is removed", func(t *testing.T) {
@@ -216,7 +216,7 @@ func TestValidate(t *testing.T) {
 				"list": {Command: "a"},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrAliasConflictsWithBuiltin)
+		require.NoError(t, cfg.Validate())
 	})
 }
 

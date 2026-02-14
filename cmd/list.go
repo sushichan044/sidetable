@@ -44,13 +44,20 @@ The output shows command/alias name, kind, target, and description for each conf
 			spacing.Column(), // Description
 		)
 
-		rows := make([][]string, 0, len(cmds))
-		for _, info := range cmds {
-			target := "-"
-			if info.Kind == "alias" {
-				target = info.Target
-			}
-			rows = append(rows, []string{info.Name, info.Kind, target, info.Description})
+		rows := make([][]string, 0, len(cmds.Commands)+len(cmds.Aliases)+len(cmds.Invalid))
+		for _, info := range cmds.Commands {
+			rows = append(rows, []string{info.Name, "command", "-", info.Description})
+		}
+		for _, info := range cmds.Aliases {
+			rows = append(rows, []string{info.Name, "alias", info.Target, info.Description})
+		}
+		for _, info := range cmds.Invalid {
+			rows = append(rows, []string{
+				info.Name,
+				"invalid " + info.Kind,
+				info.Target,
+				info.Description + " (" + info.Reason + ")",
+			})
 		}
 		if fmtErr := formatter.AddRows(rows...); fmtErr != nil {
 			return fmtErr

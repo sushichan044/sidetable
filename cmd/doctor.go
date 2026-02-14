@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/sushichan044/sidetable"
-	"github.com/sushichan044/sidetable/internal/builtin"
 )
 
 var doctorCmd = &cobra.Command{
@@ -33,10 +32,8 @@ Doctor validates command and alias names and reports conflicts with built-in com
 			errs = append(errs, fmt.Errorf("⚠️  cannot list commands: %w", listErr))
 		}
 
-		for _, info := range cmds {
-			if builtin.IsReservedCommand(info.Name) {
-				errs = append(errs, fmt.Errorf("⚠️  %s %q conflicts with builtin command", info.Kind, info.Name))
-			}
+		for _, info := range cmds.Invalid {
+			errs = append(errs, fmt.Errorf("⚠️  %s %q is disabled: %s", info.Kind, info.Name, info.Reason))
 		}
 
 		if len(errs) > 0 {

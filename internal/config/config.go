@@ -10,7 +10,6 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/sushichan044/sidetable/internal/builtin"
 	"github.com/sushichan044/sidetable/internal/xdg"
 )
 
@@ -159,9 +158,6 @@ func (c *Config) Validate() error {
 
 func (c *Config) validateCommands() error {
 	for name, cmd := range c.Commands {
-		if builtin.IsReservedCommand(name) {
-			return fmt.Errorf("command %q: %w", name, ErrCommandConflictsWithBuiltin)
-		}
 		if strings.TrimSpace(cmd.Command) == "" {
 			return fmt.Errorf("command %q: %w", name, ErrCommandRequired)
 		}
@@ -189,9 +185,6 @@ func (c *Config) validateAliases() error {
 		}
 		if _, exists := c.Commands[aliasName]; exists {
 			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithCommand)
-		}
-		if builtin.IsReservedCommand(aliasName) {
-			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithBuiltin)
 		}
 		if _, exists := c.Commands[alias.Command]; !exists {
 			return fmt.Errorf("alias %q: %w", aliasName, ErrAliasTargetUnknown)

@@ -7,15 +7,37 @@ import (
 	"sort"
 
 	"github.com/sushichan044/sidetable/internal/action"
+	"github.com/sushichan044/sidetable/internal/builtin"
 	"github.com/sushichan044/sidetable/internal/config"
 )
 
 // CommandInfo represents a resolved command entry.
 type CommandInfo struct {
 	Name        string
+	Description string
+}
+
+// AliasInfo represents a resolved alias entry.
+type AliasInfo struct {
+	Name        string
+	Target      string
+	Description string
+}
+
+// InvalidCommandInfo represents a command or alias disabled by validation rules.
+type InvalidCommandInfo struct {
+	Name        string
 	Kind        string
 	Target      string
 	Description string
+	Reason      string
+}
+
+// CommandList contains both valid and invalid command entries.
+type CommandList struct {
+	Commands []CommandInfo
+	Aliases  []AliasInfo
+	Invalid  []InvalidCommandInfo
 }
 
 // Project provides API access to sidetable core logic.
@@ -63,12 +85,17 @@ func GetExecError(err error) *action.ExecError {
 	return action.GetExecError(err)
 }
 
-// ListCommands returns resolved command entries with descriptions.
-func (p *Project) ListCommands() ([]CommandInfo, error) {
+// ListCommands returns valid command/alias entries and invalid entries with reasons.
+func (p *Project) ListCommands() (CommandList, error) {
 	if p == nil || p.config == nil {
-		return nil, errors.New("project is not initialized")
+		return CommandList{}, errors.New("project is not initialized")
 	}
-	result := make([]CommandInfo, 0, len(p.config.Commands)+len(p.config.Aliases))
+	result := CommandList{
+		Commands: make([]CommandInfo, 0, len(p.config.Commands)),
+		Aliases:  make([]AliasInfo, 0, len(p.config.Aliases)),
+		Invalid:  make([]InvalidCommandInfo, 0),
+	}
+
 	for _, name := range p.config.CommandNames() {
 		commandCfg := p.config.Commands[name]
 		desc, err := renderDescription(
@@ -79,12 +106,22 @@ func (p *Project) ListCommands() ([]CommandInfo, error) {
 			p.config.ConfigDir,
 		)
 		if err != nil {
-			return nil, err
+			return CommandList{}, err
 		}
-		result = append(result, CommandInfo{
+
+		if builtin.IsReservedCommand(name) {
+			result.Invalid = append(result.Invalid, InvalidCommandInfo{
+				Name:        name,
+				Kind:        "command",
+				Target:      name,
+				Description: desc,
+				Reason:      "conflicts with builtin command",
+			})
+			continue
+		}
+
+		result.Commands = append(result.Commands, CommandInfo{
 			Name:        name,
-			Kind:        "command",
-			Target:      name,
 			Description: desc,
 		})
 	}
@@ -105,11 +142,22 @@ func (p *Project) ListCommands() ([]CommandInfo, error) {
 			p.config.ConfigDir,
 		)
 		if err != nil {
-			return nil, err
+			return CommandList{}, err
 		}
-		result = append(result, CommandInfo{
+
+		if builtin.IsReservedCommand(aliasName) {
+			result.Invalid = append(result.Invalid, InvalidCommandInfo{
+				Name:        aliasName,
+				Kind:        "alias",
+				Target:      aliasCfg.Command,
+				Description: desc,
+				Reason:      "conflicts with builtin command",
+			})
+			continue
+		}
+
+		result.Aliases = append(result.Aliases, AliasInfo{
 			Name:        aliasName,
-			Kind:        "alias",
 			Target:      aliasCfg.Command,
 			Description: desc,
 		})
