@@ -289,5 +289,4 @@ func TestBuildEnvMerge(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, spec.Env)
 	})
-
 }
