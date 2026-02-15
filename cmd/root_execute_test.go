@@ -1,0 +1,94 @@
+//nolint:testpackage // Need package-level access to root command wiring.
+package cmd
+
+import (
+	"bytes"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestExecuteShowsTemplateEvaluationError(t *testing.T) {
+	configYAML := `directory: .sidetable
+tools:
+  cmd_tmpl_missing_field:
+    run: "{{.Invalid}}"
+`
+
+	exitCode, stderr := runExecuteWithTempConfig(t, configYAML, "cmd_tmpl_missing_field")
+
+	require.Equal(t, 1, exitCode)
+	require.Contains(t, stderr, "Error:")
+	require.Contains(t, stderr, "Invalid")
+}
+
+func TestExecutePreservesInvocationExitCodeAndPrintsError(t *testing.T) {
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skipf("skipping test; sh not found: %v", err)
+	}
+
+	configYAML := `directory: .sidetable
+tools:
+  cmd_fail_exit_42:
+    run: sh
+    args:
+      prepend: ["-c", "exit 42"]
+`
+
+	exitCode, stderr := runExecuteWithTempConfig(t, configYAML, "cmd_fail_exit_42")
+
+	require.Equal(t, 42, exitCode)
+	require.Contains(t, stderr, "Error:")
+	require.Contains(t, stderr, "invocation failed with exit code 42")
+}
+
+func TestExecuteDoesNotLeakInjectedCommandsBetweenRuns(t *testing.T) {
+	firstConfigYAML := `directory: .sidetable
+tools:
+  cmd_once:
+    run: sh
+    args:
+      prepend: ["-c", "exit 0"]
+`
+
+	secondConfigYAML := `directory: .sidetable
+tools: {}
+`
+
+	firstExitCode, _ := runExecuteWithTempConfig(t, firstConfigYAML, "cmd_once")
+	require.Equal(t, 0, firstExitCode)
+
+	secondExitCode, secondStderr := runExecuteWithTempConfig(t, secondConfigYAML, "cmd_once")
+	require.Equal(t, 1, secondExitCode)
+	require.Contains(t, secondStderr, "unknown command")
+}
+
+func runExecuteWithTempConfig(t *testing.T, configYAML string, args ...string) (int, string) {
+	t.Helper()
+
+	configDir := t.TempDir()
+	configPath := filepath.Join(configDir, "config.yml")
+	require.NoError(t, os.WriteFile(configPath, []byte(configYAML), 0o600))
+	t.Setenv("SIDETABLE_CONFIG_DIR", configDir)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	origOut := rootCmd.OutOrStdout()
+	origErr := rootCmd.ErrOrStderr()
+
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetErr(&stderr)
+	rootCmd.SetArgs(args)
+
+	exitCode := Execute()
+	rootCmd.SetOut(origOut)
+	rootCmd.SetErr(origErr)
+	rootCmd.SetArgs(nil)
+	clearInjectedUserCommands()
+
+	return exitCode, stderr.String()
+}

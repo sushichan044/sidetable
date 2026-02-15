@@ -513,6 +513,9 @@ linters:
         linters:
           - gochecknoglobals
           - gochecknoinits
+      - path: 'internal/config/schema.go'
+        linters:
+          - gochecknoglobals
       - path: 'cmd/'
         linters:
           - revive

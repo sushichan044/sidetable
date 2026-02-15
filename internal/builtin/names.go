@@ -1,7 +1,7 @@
 package builtin
 
-// IsReservedCommand returns true when name is reserved as a built-in command.
-func IsReservedCommand(name string) bool {
+// IsReservedName returns true when name is reserved as a built-in CLI command.
+func IsReservedName(name string) bool {
 	switch name {
 	case "list", "completion", "init", "help":
 		return true

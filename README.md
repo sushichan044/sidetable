@@ -1,8 +1,9 @@
 # sidetable
 
-**sidetable** is a Go CLI tool that helps manage a project-local private area (e.g. `.$USER/`) and integrates external commands.
+**sidetable** is a Go CLI and library for managing a project-local tool area (for example `.$USER/`) and delegating external tools.
 
-You define subcommands in a config file and can execute arbitrary commands as `sidetable <subcmd> ...`. This lets you standardize project-specific directory layouts and tool settings, and seamlessly integrate external tools (e.g. [x-motemen/ghq](https://github.com/x-motemen/ghq)).
+Define tools in config, then execute them as `sidetable <tool-or-alias> ...`.
+Each tool gets its own directory under your configured local area, so you can keep per-project state in a predictable layout.
 
 <!-- TOC -->
 
@@ -24,7 +25,6 @@ You define subcommands in a config file and can execute arbitrary commands as `s
   - [Development](#development)
     - [Requirements](#requirements)
     - [Quick commands](#quick-commands)
-    - [Standard Go commands](#standard-go-commands)
   - [License](#license)
   - [Contributing](#contributing)
 
@@ -52,19 +52,22 @@ go install github.com/sushichan044/sidetable/cmd/sidetable@latest
 
 ### Download binary
 
-You can download the latest release binaries from [Releases](https://github.com/sushichan044/sidetable/releases).
+Download the latest release binaries from [Releases](https://github.com/sushichan044/sidetable/releases).
 
 ## Usage
 
 ### Basic usage
 
 ```bash
-# List commands
+# List tools and aliases
 $ sidetable list
-example        An example command
+NAME           KIND      TARGET   DESCRIPTION
+example        tool      -        An example tool
+ex             alias     example  Shortcut for example
 
-# Run a command.
+# Run a tool or alias
 $ sidetable example arg1 arg2
+$ sidetable ex arg1 arg2
 
 # Show help
 $ sidetable --help
@@ -76,20 +79,19 @@ $ sidetable --version
 
 ### Example: integrate with [ghq](https://github.com/x-motemen/ghq)
 
-Example configuration for project-local Git repository management:
-
 ```yaml
 directory: ".private"
 
-commands:
+tools:
   ghq:
-    command: "ghq"
+    run: "ghq"
     env:
-      GHQ_ROOT: "{{.CommandDir}}" # See Configuration section for details
+      GHQ_ROOT: "{{.ToolDir}}"
     description: "Manage repositories in project-local directory"
+
 aliases:
   q:
-    command: "ghq"
+    tool: "ghq"
     args:
       prepend:
         - "get"
@@ -102,27 +104,26 @@ Example:
 ```bash
 $ cd ~/myproject
 $ sidetable q https://github.com/example/repo
-# Or you can call the original command: `sidetable ghq get -u https://github.com/example/repo`
-#
+# Or call the tool directly:
+# sidetable ghq get -u https://github.com/example/repo
 # => cloned into ~/myproject/.private/ghq/github.com/example/repo
 ```
 
 ### Shell Completion
 
-You can enable shell completion for `sidetable` commands.
-This includes completion for subcommands defined in your config file.
+You can enable shell completion for sidetable commands, including tools and aliases defined in config.
 
 ```bash
-# For bash
+# bash
 source <(sidetable completion bash)
 
-# For zsh
+# zsh
 source <(sidetable completion zsh)
 
-# For fish
+# fish
 sidetable completion fish | source
 
-# For PowerShell
+# PowerShell
 sidetable completion powershell | Out-String | Invoke-Expression
 ```
 
@@ -130,7 +131,7 @@ sidetable completion powershell | Out-String | Invoke-Expression
 
 ### Location
 
-The config file is searched in the following order:
+`config.yml` is searched in the following order:
 
 1. If `SIDETABLE_CONFIG_DIR` is set: `$SIDETABLE_CONFIG_DIR/config.yml`
 2. Otherwise: `$XDG_CONFIG_HOME/sidetable/config.yml` (or `~/.config/sidetable/config.yml` if `XDG_CONFIG_HOME` is not set)
@@ -138,77 +139,87 @@ The config file is searched in the following order:
 ### Basic example
 
 ```yaml
-# Required. Sets the project-local private area name.
-# If sets to ".sidetable", the private area path is "./.sidetable"
+# Required. Project-local tool area name (relative path).
 directory: ".sidetable"
 
-commands:
+tools:
   ghq:
-    # Required. Command name to execute.
-    command: "ghq"
-    # Optional. Arguments to pass to the command.
-    # If omitted, sidetable just runs `<command>` with user-provided args.
+    # Required. Program name to execute.
+    # Templating: allowed.
+    run: "ghq"
+    # Optional. Arguments to inject.
+    # Order: tool.prepend + userArgs + tool.append
+    # Templating: allowed.
     args:
-      # Arguments added before user-provided args.
-      prepend:
-        - "get"
-        - "-u"
+      # prepend:
+      #   - "--some-flag"
+      # append:
+      # - "--some-flag"
+    # Optional. Override environment variables for the tool.
+    # Templating: allowed.
     env:
-      # You can use `{{.CommandDir}}` to get the command-local directory path.
-      # In this example, GHQ_ROOT is set to "./.sidetable/ghq"
-      GHQ_ROOT: "{{.CommandDir}}"
+      GHQ_ROOT: "{{.ToolDir}}"
     # Optional. Description shown in `sidetable list`.
     description: "ghq wrapper with project-local root"
 
   note:
-    # You can use `{{.ConfigDir}}` to get the configuration directory path.
-    # You can set your own shell scripts as command.
-    command: "{{.ConfigDir}}/vim-note.sh"
+    run: "{{.ConfigDir}}/vim-note.sh"
     args:
-      # Optional. Arguments added after user-provided args.
       append:
-        - "{{.CommandDir}}/note.md"
+        - "{{.ToolDir}}/note.md"
     description: "Open project note file"
 
+# Optional. Aliases for tools.
 aliases:
   gg:
-    # Required. Target command name defined in `commands`.
-    command: "ghq"
+    # Required. Target tool name defined in `tools`.
+    tool: "ghq"
+    # Optional. Arguments to inject.
+    # Order: alias.prepend + tool.prepend + userArgs + tool.append + alias.append
+    # Templating: allowed.
     args:
       prepend:
         - "get"
         - "-u"
+      # append:
+      # - "--some-flag"
+    # Optional. Description shown in `sidetable list`.
     description: "ghq get shortcut"
-  n:
-    command: "note"
 ```
 
 ### Template variables
 
-Each string in `command`, `args`, `env`, and `description` is evaluated as a Go template. Available variables:
+These fields are treated as Go text/template and rendered with the following variables.
 
-| Variable      | Description                                                |
-| ------------- | ---------------------------------------------------------- |
-| `.ProjectDir` | current directory when running `sidetable` (absolute path) |
-| `.PrivateDir` | `.ProjectDir/<directory>` (absolute path)                  |
-| `.CommandDir` | `.ProjectDir/<directory>/<commandName>` (absolute path)    |
-| `.ConfigDir`  | directory containing `config.yml` (absolute path)          |
+- `tools.<toolName>.run`
+- `tools.<toolName>.args.prepend`
+- `tools.<toolName>.args.append`
+- `tools.<toolName>.env.<envVar>`
+- `aliases.<aliasName>.args.prepend`
+- `aliases.<aliasName>.args.append`
+
+| Variable         | Description                              |
+| ---------------- | ---------------------------------------- |
+| `.WorkspaceRoot` | current directory when running sidetable |
+| `.ToolDir`       | `.WorkspaceRoot/<directory>/<toolName>`  |
+| `.ConfigDir`     | directory containing `config.yml`        |
+
+All directory variables are absolute paths.
 
 ### Argument injection rules
 
-`args.prepend` and `args.append` are evaluated as templates.
-Execution args are combined as:
+Arguments are concatenated in the following order.
 
 ```text
-alias.prepend + command.prepend + userArgs + command.append + alias.append
+alias.prepend + tool.prepend + userArgs + tool.append + alias.append
 ```
 
 Example:
 
 ```yaml
-commands:
+tools:
   example:
-    command: "mycommand"
+    run: "mycommand"
     args:
       prepend:
         - "--flag"
@@ -216,7 +227,7 @@ commands:
         - "--output=result.txt"
 aliases:
   ex:
-    command: "example"
+    tool: "example"
     args:
       prepend:
         - "--alias-start"
@@ -235,7 +246,7 @@ $ sidetable ex arg1 arg2
 ### Requirements
 
 - Go 1.25+
-- [mise](https://mise.jdx.dev/) (task runner, optional)
+- [mise](https://mise.jdx.dev/) (optional)
 
 ### Quick commands
 
@@ -259,26 +270,10 @@ mise run build-snapshot
 mise run clean
 ```
 
-### Standard Go commands
-
-```bash
-# Run in development mode
-go run ./cmd/sidetable
-
-# Run all tests
-go test ./...
-
-# Tidy dependencies
-go mod tidy
-
-# Tests with coverage
-go test -cover ./...
-```
-
 ## License
 
-MIT License
+[MIT](LICENSE)
 
 ## Contributing
 
-Please open an issue for bug reports or feature requests: [Issues](https://github.com/sushichan044/sidetable/issues)
+Issues and PRs are welcome.

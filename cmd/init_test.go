@@ -34,7 +34,7 @@ func TestInitCommandFailsWhenConfigExists(t *testing.T) {
 	t.Setenv("SIDETABLE_CONFIG_DIR", base)
 
 	path := filepath.Join(base, "config.yml")
-	require.NoError(t, os.WriteFile(path, []byte("directory: .sidetable\ncommands: {x: {command: echo}}\n"), 0o644))
+	require.NoError(t, os.WriteFile(path, []byte("directory: .sidetable\ntools: {x: {run: echo}}\n"), 0o644))
 
 	var buf bytes.Buffer
 	initCmd.SetOut(&buf)
@@ -45,5 +45,5 @@ func TestInitCommandFailsWhenConfigExists(t *testing.T) {
 
 	data, readErr := os.ReadFile(path)
 	require.NoError(t, readErr)
-	require.Equal(t, "directory: .sidetable\ncommands: {x: {command: echo}}\n", string(data))
+	require.Equal(t, "directory: .sidetable\ntools: {x: {run: echo}}\n", string(data))
 }
