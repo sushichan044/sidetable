@@ -70,7 +70,6 @@ func TestResolveInvocationTemplateEvaluation(t *testing.T) {
 	require.Equal(t, filepath.Join(workspaceRoot, ".private", "tool"), inv.Program)
 	require.Contains(t, inv.Env, "ROOT="+workspaceRoot)
 	require.Contains(t, inv.Env, "CONFIG="+configDir)
-	require.Equal(t, "tool", inv.ToolName)
 }
 
 func TestResolveInvocationTemplateErrors(t *testing.T) {

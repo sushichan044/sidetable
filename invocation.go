@@ -13,12 +13,9 @@ import (
 
 // Invocation is a fully resolved process invocation.
 type Invocation struct {
-	ToolName         string
-	Program          string
-	Args             []string
-	Env              []string
-	WorkspaceRootDir string
-	ToolDir          string
+	Program string
+	Args    []string
+	Env     []string
 }
 
 // InvokeOptions configures process execution.
@@ -102,11 +99,9 @@ func resolveInvocation(
 	}
 
 	return Invocation{
-		ToolName:         resolved.ToolName,
-		Program:          program,
-		Args:             resolvedArgs,
-		Env:              env,
-		WorkspaceRootDir: workspaceRoot,
+		Program: program,
+		Args:    resolvedArgs,
+		Env:     env,
 	}, nil
 }
 
