@@ -141,3 +141,33 @@ func newCustomIssue(path []string, message string) *z.ZogIssue {
 		SetPath(path).
 		SetMessage(message)
 }
+
+type validationIssueError struct {
+	issue *z.ZogIssue
+}
+
+func newValidationIssueError(issue *z.ZogIssue) error {
+	return validationIssueError{issue: issue}
+}
+
+func (e validationIssueError) Error() string {
+	if e.issue == nil {
+		return "invalid config"
+	}
+
+	msg := e.issue.Message
+	if msg == "" {
+		msg = e.issue.Error()
+	}
+
+	path := e.issue.PathString()
+	if path == "" {
+		return msg
+	}
+
+	return path + ": " + msg
+}
+
+func (e validationIssueError) Unwrap() error {
+	return e.issue
+}

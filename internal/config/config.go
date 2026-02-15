@@ -120,7 +120,7 @@ func (c *Config) Validate() error {
 
 	errs := make([]error, 0, len(issues))
 	for _, issue := range issues {
-		errs = append(errs, issue)
+		errs = append(errs, newValidationIssueError(issue))
 	}
 
 	return errors.Join(errs...)
