@@ -4,6 +4,7 @@ package cmd
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -25,6 +26,10 @@ tools:
 }
 
 func TestExecutePreservesInvocationExitCodeAndPrintsError(t *testing.T) {
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skipf("skipping test; sh not found: %v", err)
+	}
+
 	configYAML := `directory: .sidetable
 tools:
   cmd_fail_exit_42:
