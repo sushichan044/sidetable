@@ -29,9 +29,6 @@ var (
 	ErrAliasMustNotContainSpaces  = errors.New("alias must not contain spaces")
 	ErrAliasToolRequired          = errors.New("alias tool is required")
 	ErrAliasTargetUnknown         = errors.New("alias tool not found")
-	ErrLegacyCommandsRemoved      = errors.New("top-level commands has been removed; use tools")
-	ErrLegacyToolCommandRemoved   = errors.New("tools.<name>.command has been removed; use run")
-	ErrLegacyAliasCommandRemoved  = errors.New("aliases.<name>.command has been removed; use tool")
 )
 
 // Config represents configuration file structure.
@@ -39,7 +36,6 @@ type Config struct {
 	Directory      string           `yaml:"directory"`
 	Tools          map[string]Tool  `yaml:"tools"`
 	Aliases        map[string]Alias `yaml:"aliases"`
-	LegacyCommands map[string]any   `yaml:"commands"`
 	ConfigDir      string           `yaml:"-"`
 }
 
@@ -49,7 +45,6 @@ type Tool struct {
 	Args          Args              `yaml:"args"`
 	Env           map[string]string `yaml:"env"`
 	Description   string            `yaml:"description"`
-	LegacyCommand *string           `yaml:"command"`
 }
 
 // Alias represents an alias definition.
@@ -57,7 +52,6 @@ type Alias struct {
 	Tool          string  `yaml:"tool"`
 	Args          Args    `yaml:"args"`
 	Description   string  `yaml:"description"`
-	LegacyCommand *string `yaml:"command"`
 }
 
 // Args represents user-arg injection configuration.
@@ -142,9 +136,6 @@ func (c *Config) Validate() error {
 	if filepath.IsAbs(c.Directory) {
 		errs = append(errs, ErrDirectoryMustBeRelative)
 	}
-	if len(c.LegacyCommands) > 0 {
-		errs = append(errs, ErrLegacyCommandsRemoved)
-	}
 	if len(c.Tools) == 0 {
 		errs = append(errs, ErrToolsMissing)
 	}
@@ -168,9 +159,6 @@ func (c *Config) validateTools() []error {
 	errs := make([]error, 0)
 	for _, name := range toolNames {
 		tool := c.Tools[name]
-		if tool.LegacyCommand != nil {
-			errs = append(errs, fmt.Errorf("tool %q: %w", name, ErrLegacyToolCommandRemoved))
-		}
 		if strings.TrimSpace(tool.Run) == "" {
 			errs = append(errs, fmt.Errorf("tool %q: %w", name, ErrToolRunRequired))
 		}
@@ -204,9 +192,6 @@ func (c *Config) validateAliases() []error {
 		}
 		if strings.ContainsAny(aliasName, " \t\n\r") {
 			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasMustNotContainSpaces))
-		}
-		if alias.LegacyCommand != nil {
-			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrLegacyAliasCommandRemoved))
 		}
 		aliasTool := strings.TrimSpace(alias.Tool)
 		if aliasTool == "" {

@@ -139,26 +139,6 @@ func TestValidate(t *testing.T) {
 		require.ErrorIs(t, cfg.Validate(), config.ErrToolConflictsWithBuiltin)
 	})
 
-	t.Run("legacy top-level commands is removed", func(t *testing.T) {
-		cfg := &config.Config{
-			Directory:      ".private",
-			Tools:          map[string]config.Tool{"a": {Run: "a"}},
-			LegacyCommands: map[string]any{"a": map[string]any{"command": "a"}},
-		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrLegacyCommandsRemoved)
-	})
-
-	t.Run("legacy tool command is removed", func(t *testing.T) {
-		legacy := "a"
-		cfg := &config.Config{
-			Directory: ".private",
-			Tools: map[string]config.Tool{
-				"a": {Run: "a", LegacyCommand: &legacy},
-			},
-		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrLegacyToolCommandRemoved)
-	})
-
 	t.Run("alias tool required", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
@@ -224,20 +204,6 @@ func TestValidate(t *testing.T) {
 			},
 		}
 		require.ErrorIs(t, cfg.Validate(), config.ErrAliasConflictsWithBuiltin)
-	})
-
-	t.Run("legacy alias command is removed", func(t *testing.T) {
-		legacy := "a"
-		cfg := &config.Config{
-			Directory: ".private",
-			Tools: map[string]config.Tool{
-				"a": {Run: "a"},
-			},
-			Aliases: map[string]config.Alias{
-				"x": {Tool: "a", LegacyCommand: &legacy},
-			},
-		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrLegacyAliasCommandRemoved)
 	})
 
 	t.Run("collects multiple validation errors", func(t *testing.T) {
