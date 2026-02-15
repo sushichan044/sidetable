@@ -83,7 +83,7 @@ func (w *Workspace) Run(ctx context.Context, name string, userArgs []string, opt
 		return errors.New("workspace is not initialized")
 	}
 
-	inv, err := resolveInvocation(w.config, name, userArgs, w.rootDir)
+	inv, err := resolveInvocation(w.config, name, userArgs, w.rootDir, os.Environ())
 	if err != nil {
 		return err
 	}

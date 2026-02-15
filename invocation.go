@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -65,6 +64,7 @@ func resolveInvocation(
 	entryName string,
 	userArgs []string,
 	workspaceRoot string,
+	baseEnv []string,
 ) (Invocation, error) {
 	resolved, err := cfg.ResolveEntry(entryName)
 	if err != nil {
@@ -93,7 +93,7 @@ func resolveInvocation(
 		return Invocation{}, err
 	}
 
-	envMap, err := buildEnvMap(resolved.Tool.Env, ctx)
+	envMap, err := buildEnvMap(baseEnv, resolved.Tool.Env, ctx)
 	if err != nil {
 		return Invocation{}, err
 	}
@@ -162,8 +162,12 @@ func buildArgList(args []string, ctx templateContext) ([]string, error) {
 	return result, nil
 }
 
-func buildEnvMap(toolEnv map[string]string, ctx templateContext) (map[string]string, error) {
-	osEnv := envMapFromSlice(os.Environ())
+// buildEnvMap evaluates tool environment variables and merges them with the base environment.
+//
+// baseEnv is typically `os.Environ()` or the parent process environment.
+// baseEnv is not handled as template.
+func buildEnvMap(baseEnv []string, toolEnv map[string]string, ctx templateContext) (map[string]string, error) {
+	baseEnvMap := envMapFromSlice(baseEnv)
 
 	evaluatedToolEnv := make(map[string]string, len(toolEnv))
 	for key, raw := range toolEnv {
@@ -174,6 +178,6 @@ func buildEnvMap(toolEnv map[string]string, ctx templateContext) (map[string]str
 		evaluatedToolEnv[key] = value
 	}
 
-	merged := mergeMap(osEnv, evaluatedToolEnv)
+	merged := mergeMap(baseEnvMap, evaluatedToolEnv)
 	return merged, nil
 }
