@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/sushichan044/sidetable/internal/action"
+	"github.com/sushichan044/sidetable"
 )
 
 func TestDetermineExitCode(t *testing.T) {
@@ -16,7 +16,7 @@ func TestDetermineExitCode(t *testing.T) {
 	})
 
 	t.Run("delegated exit code is preserved", func(t *testing.T) {
-		err := &action.ExecError{
+		err := &sidetable.InvocationError{
 			Code: 42,
 			Err:  errors.New("boom"),
 		}

@@ -21,7 +21,7 @@ func TestResolvePath(t *testing.T) {
 	configPath := filepath.Join(envDir, "config.yml")
 
 	t.Run("yml only", func(t *testing.T) {
-		require.NoError(t, os.WriteFile(configPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
+		require.NoError(t, os.WriteFile(configPath, []byte("directory: .private\ntools: {}\n"), 0o644))
 		path, err := config.FindConfigPath()
 		require.NoError(t, err)
 		require.Equal(t, configPath, path)
@@ -49,8 +49,8 @@ func TestResolvePathPrefersEnvDir(t *testing.T) {
 	envPath := filepath.Join(envDir, "config.yml")
 	xdgPath := filepath.Join(xdgDir, "config.yml")
 
-	require.NoError(t, os.WriteFile(envPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
-	require.NoError(t, os.WriteFile(xdgPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
+	require.NoError(t, os.WriteFile(envPath, []byte("directory: .private\ntools: {}\n"), 0o644))
+	require.NoError(t, os.WriteFile(xdgPath, []byte("directory: .private\ntools: {}\n"), 0o644))
 
 	path, err := config.FindConfigPath()
 	require.NoError(t, err)
@@ -67,7 +67,7 @@ func TestResolvePathFallbackXDG(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", xdgHome)
 
 	configPath := filepath.Join(xdgDir, "config.yml")
-	require.NoError(t, os.WriteFile(configPath, []byte("directory: .private\ncommands: {}\n"), 0o644))
+	require.NoError(t, os.WriteFile(configPath, []byte("directory: .private\ntools: {}\n"), 0o644))
 
 	path, err := config.FindConfigPath()
 	require.NoError(t, err)
@@ -78,15 +78,13 @@ func TestValidate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
-				"ghq": {Command: "ghq"},
+			Tools: map[string]config.Tool{
+				"ghq": {Run: "ghq"},
 			},
 			Aliases: map[string]config.Alias{
 				"gg": {
-					Command: "ghq",
-					Args: config.Args{
-						Append: []string{"get"},
-					},
+					Tool: "ghq",
+					Args: config.Args{Append: []string{"get"}},
 				},
 			},
 		}
@@ -94,7 +92,7 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("missing directory", func(t *testing.T) {
-		cfg := &config.Config{Commands: map[string]config.Command{"a": {Command: "a"}}}
+		cfg := &config.Config{Tools: map[string]config.Tool{"a": {Run: "a"}}}
 		require.ErrorIs(t, cfg.Validate(), config.ErrDirectoryRequired)
 	})
 
@@ -105,78 +103,85 @@ func TestValidate(t *testing.T) {
 		}
 		cfg := &config.Config{
 			Directory: abs,
-			Commands:  map[string]config.Command{"a": {Command: "a"}},
+			Tools:     map[string]config.Tool{"a": {Run: "a"}},
 		}
 		require.ErrorIs(t, cfg.Validate(), config.ErrDirectoryMustBeRelative)
 	})
 
-	t.Run("missing commands key", func(t *testing.T) {
-		cfg := &config.Config{
-			Directory: ".private",
-		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrCommandsMissing)
+	t.Run("missing tools key", func(t *testing.T) {
+		cfg := &config.Config{Directory: ".private"}
+		require.ErrorIs(t, cfg.Validate(), config.ErrToolsMissing)
 	})
 
-	t.Run("empty command", func(t *testing.T) {
+	t.Run("empty run", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands:  map[string]config.Command{"a": {Command: ""}},
+			Tools:     map[string]config.Tool{"a": {Run: ""}},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrCommandRequired)
+		require.ErrorIs(t, cfg.Validate(), config.ErrToolRunRequired)
 	})
 
-	t.Run("command with spaces", func(t *testing.T) {
+	t.Run("run with spaces", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands:  map[string]config.Command{"a": {Command: "bad cmd"}},
+			Tools:     map[string]config.Tool{"a": {Run: "bad run"}},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrCommandMustNotContainSpaces)
+		require.ErrorIs(t, cfg.Validate(), config.ErrToolRunMustNotContainSpace)
 	})
 
-	t.Run("command collides with builtin", func(t *testing.T) {
+	t.Run("tool collides with builtin", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
-				"list": {Command: "ghq"},
+			Tools: map[string]config.Tool{
+				"list": {Run: "ghq"},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrCommandConflictsWithBuiltin)
+		require.ErrorIs(t, cfg.Validate(), config.ErrToolConflictsWithBuiltin)
 	})
 
-	t.Run("legacy alias is removed", func(t *testing.T) {
-		legacyAlias := "x"
+	t.Run("legacy top-level commands is removed", func(t *testing.T) {
+		cfg := &config.Config{
+			Directory:      ".private",
+			Tools:          map[string]config.Tool{"a": {Run: "a"}},
+			LegacyCommands: map[string]any{"a": map[string]any{"command": "a"}},
+		}
+		require.ErrorIs(t, cfg.Validate(), config.ErrLegacyCommandsRemoved)
+	})
+
+	t.Run("legacy tool command is removed", func(t *testing.T) {
+		legacy := "a"
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
-				"a": {Command: "a", LegacyAlias: &legacyAlias},
+			Tools: map[string]config.Tool{
+				"a": {Run: "a", LegacyCommand: &legacy},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrLegacyCommandAliasRemoved)
+		require.ErrorIs(t, cfg.Validate(), config.ErrLegacyToolCommandRemoved)
 	})
 
-	t.Run("alias command required", func(t *testing.T) {
+	t.Run("alias tool required", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
-				"a": {Command: "a"},
+			Tools: map[string]config.Tool{
+				"a": {Run: "a"},
 			},
 			Aliases: map[string]config.Alias{
-				"x": {Command: ""},
+				"x": {Tool: ""},
 			},
 		}
 		err := cfg.Validate()
-		require.ErrorIs(t, err, config.ErrAliasCommandRequired)
+		require.ErrorIs(t, err, config.ErrAliasToolRequired)
 		require.NotErrorIs(t, err, config.ErrAliasTargetUnknown)
 	})
 
 	t.Run("alias target unknown", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
-				"a": {Command: "a"},
+			Tools: map[string]config.Tool{
+				"a": {Run: "a"},
 			},
 			Aliases: map[string]config.Alias{
-				"x": {Command: "missing"},
+				"x": {Tool: "missing"},
 			},
 		}
 		require.ErrorIs(t, cfg.Validate(), config.ErrAliasTargetUnknown)
@@ -185,113 +190,111 @@ func TestValidate(t *testing.T) {
 	t.Run("alias with spaces", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
-				"a": {Command: "a"},
+			Tools: map[string]config.Tool{
+				"a": {Run: "a"},
 			},
 			Aliases: map[string]config.Alias{
-				"bad alias": {Command: "a"},
+				"bad alias": {Tool: "a"},
 			},
 		}
 		require.ErrorIs(t, cfg.Validate(), config.ErrAliasMustNotContainSpaces)
 	})
 
-	t.Run("alias collides with command", func(t *testing.T) {
+	t.Run("alias collides with tool", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
-				"a": {Command: "a"},
+			Tools: map[string]config.Tool{
+				"a": {Run: "a"},
 			},
 			Aliases: map[string]config.Alias{
-				"a": {Command: "a"},
+				"a": {Tool: "a"},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrAliasConflictsWithCommand)
+		require.ErrorIs(t, cfg.Validate(), config.ErrAliasConflictsWithTool)
 	})
 
 	t.Run("alias collides with builtin", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
-				"a": {Command: "a"},
+			Tools: map[string]config.Tool{
+				"a": {Run: "a"},
 			},
 			Aliases: map[string]config.Alias{
-				"list": {Command: "a"},
+				"list": {Tool: "a"},
 			},
 		}
 		require.ErrorIs(t, cfg.Validate(), config.ErrAliasConflictsWithBuiltin)
 	})
 
-	t.Run("doctor name is allowed for command and alias", func(t *testing.T) {
+	t.Run("legacy alias command is removed", func(t *testing.T) {
+		legacy := "a"
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
-				"doctor": {Command: "echo"},
-				"a":      {Command: "echo"},
+			Tools: map[string]config.Tool{
+				"a": {Run: "a"},
 			},
 			Aliases: map[string]config.Alias{
-				"d": {Command: "doctor"},
+				"x": {Tool: "a", LegacyCommand: &legacy},
 			},
 		}
-		require.NoError(t, cfg.Validate())
+		require.ErrorIs(t, cfg.Validate(), config.ErrLegacyAliasCommandRemoved)
 	})
 
 	t.Run("collects multiple validation errors", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
-			Commands: map[string]config.Command{
+			Tools: map[string]config.Tool{
 				"list": {
-					Command: "bad cmd",
+					Run: "bad run",
 				},
 			},
 			Aliases: map[string]config.Alias{
 				"help": {
-					Command: "missing",
+					Tool: "missing",
 				},
 			},
 		}
 
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.ErrorIs(t, err, config.ErrCommandMustNotContainSpaces)
-		require.ErrorIs(t, err, config.ErrCommandConflictsWithBuiltin)
+		require.ErrorIs(t, err, config.ErrToolRunMustNotContainSpace)
+		require.ErrorIs(t, err, config.ErrToolConflictsWithBuiltin)
 		require.ErrorIs(t, err, config.ErrAliasConflictsWithBuiltin)
 		require.ErrorIs(t, err, config.ErrAliasTargetUnknown)
 	})
 }
 
-func TestResolveCommandName(t *testing.T) {
+func TestResolveEntryName(t *testing.T) {
 	cfg := &config.Config{
 		Directory: ".private",
-		Commands: map[string]config.Command{
-			"ghq": {Command: "ghq"},
-			"b":   {Command: "b"},
+		Tools: map[string]config.Tool{
+			"ghq": {Run: "ghq"},
+			"b":   {Run: "b"},
 		},
 		Aliases: map[string]config.Alias{
 			"gg": {
-				Command: "ghq",
-				Args: config.Args{
-					Append: []string{"get"},
-				},
+				Tool: "ghq",
+				Args: config.Args{Append: []string{"get"}},
 			},
 		},
 	}
 
-	resolved, err := cfg.ResolveCommand("ghq")
+	resolved, err := cfg.ResolveEntry("ghq")
 	require.NoError(t, err)
-	require.Equal(t, "ghq", resolved.Name)
-	require.Equal(t, "ghq", resolved.Command.Command)
+	require.Equal(t, "ghq", resolved.ToolName)
+	require.Equal(t, "ghq", resolved.Tool.Run)
 	require.Empty(t, resolved.AliasName)
 	require.Nil(t, resolved.AliasArgs)
 
-	resolved, err = cfg.ResolveCommand("gg")
+	resolved, err = cfg.ResolveEntry("gg")
 	require.NoError(t, err)
-	require.Equal(t, "ghq", resolved.Name)
-	require.Equal(t, "ghq", resolved.Command.Command)
+	require.Equal(t, "ghq", resolved.ToolName)
+	require.Equal(t, "ghq", resolved.Tool.Run)
 	require.Equal(t, "gg", resolved.AliasName)
 	require.Equal(t, []string{"get"}, resolved.AliasArgs.Append)
 
-	_, err = cfg.ResolveCommand("missing")
-	require.ErrorIs(t, err, config.ErrCommandUnknown)
+	_, err = cfg.ResolveEntry("missing")
+	require.ErrorIs(t, err, config.ErrEntryUnknown)
 }
 
 func TestLoad_ParsesYAML(t *testing.T) {
@@ -300,9 +303,9 @@ func TestLoad_ParsesYAML(t *testing.T) {
 
 	content := `
 directory: .private
-commands:
+tools:
   ghq:
-    command: ghq
+    run: ghq
     description: "ghq wrapper"
     env:
       A: a
@@ -313,7 +316,7 @@ commands:
         - "-v"
 aliases:
   gg:
-    command: ghq
+    tool: ghq
     description: "ghq get"
     args:
       append: ["get"]
@@ -326,17 +329,17 @@ aliases:
 	require.Equal(t, ".private", cfg.Directory)
 	require.Equal(t, filepath.Dir(path), cfg.ConfigDir)
 
-	cmd, ok := cfg.Commands["ghq"]
+	tool, ok := cfg.Tools["ghq"]
 	require.True(t, ok)
-	require.Equal(t, "ghq", cmd.Command)
-	require.Equal(t, "ghq wrapper", cmd.Description)
-	require.Equal(t, map[string]string{"A": "a", "B": "b"}, cmd.Env)
-	require.ElementsMatch(t, []string{"-l"}, cmd.Args.Prepend)
-	require.ElementsMatch(t, []string{"-v"}, cmd.Args.Append)
+	require.Equal(t, "ghq", tool.Run)
+	require.Equal(t, "ghq wrapper", tool.Description)
+	require.Equal(t, map[string]string{"A": "a", "B": "b"}, tool.Env)
+	require.ElementsMatch(t, []string{"-l"}, tool.Args.Prepend)
+	require.ElementsMatch(t, []string{"-v"}, tool.Args.Append)
 
 	alias, ok := cfg.Aliases["gg"]
 	require.True(t, ok)
-	require.Equal(t, "ghq", alias.Command)
+	require.Equal(t, "ghq", alias.Tool)
 	require.ElementsMatch(t, []string{"get"}, alias.Args.Append)
 }
 
@@ -346,7 +349,7 @@ func TestLoad_InvalidYAML(t *testing.T) {
 
 	bad := `
 directory: .private
-commands:
+tools:
   - name: bad
 `
 	require.NoError(t, os.WriteFile(path, []byte(bad), 0o644))
@@ -355,23 +358,21 @@ commands:
 	require.Error(t, err)
 }
 
-func TestResolveCommandWithAliasInfo(t *testing.T) {
+func TestResolveEntryWithAliasInfo(t *testing.T) {
 	cfg := &config.Config{
 		Directory: ".test",
-		Commands: map[string]config.Command{
+		Tools: map[string]config.Tool{
 			"ghq": {
-				Command: "ghq",
+				Run: "ghq",
 			},
 			"foo": {
-				Command: "foo-bin",
+				Run: "foo-bin",
 			},
 		},
 		Aliases: map[string]config.Alias{
 			"gg": {
-				Command: "ghq",
-				Args: config.Args{
-					Append: []string{"get"},
-				},
+				Tool: "ghq",
+				Args: config.Args{Append: []string{"get"}},
 			},
 		},
 	}
@@ -379,51 +380,51 @@ func TestResolveCommandWithAliasInfo(t *testing.T) {
 	tests := []struct {
 		name          string
 		inputName     string
-		wantName      string
+		wantToolName  string
 		wantAlias     string
-		wantCommand   string
+		wantRun       string
 		wantAliasArgs *config.Args
 		wantErr       error
 	}{
 		{
-			name:          "resolve by direct command name",
+			name:          "resolve by direct tool name",
 			inputName:     "ghq",
-			wantName:      "ghq",
+			wantToolName:  "ghq",
 			wantAlias:     "",
-			wantCommand:   "ghq",
+			wantRun:       "ghq",
 			wantAliasArgs: nil,
 			wantErr:       nil,
 		},
 		{
-			name:        "resolve by alias name",
-			inputName:   "gg",
-			wantName:    "ghq",
-			wantAlias:   "gg",
-			wantCommand: "ghq",
+			name:         "resolve by alias name",
+			inputName:    "gg",
+			wantToolName: "ghq",
+			wantAlias:    "gg",
+			wantRun:      "ghq",
 			wantAliasArgs: &config.Args{
 				Append: []string{"get"},
 			},
 			wantErr: nil,
 		},
 		{
-			name:          "command without alias",
+			name:          "tool without alias",
 			inputName:     "foo",
-			wantName:      "foo",
+			wantToolName:  "foo",
 			wantAlias:     "",
-			wantCommand:   "foo-bin",
+			wantRun:       "foo-bin",
 			wantAliasArgs: nil,
 			wantErr:       nil,
 		},
 		{
-			name:      "command not found",
+			name:      "entry not found",
 			inputName: "unknown",
-			wantErr:   config.ErrCommandUnknown,
+			wantErr:   config.ErrEntryUnknown,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resolved, err := cfg.ResolveCommand(tt.inputName)
+			resolved, err := cfg.ResolveEntry(tt.inputName)
 
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)
@@ -433,9 +434,9 @@ func TestResolveCommandWithAliasInfo(t *testing.T) {
 
 			require.NoError(t, err)
 			require.NotNil(t, resolved)
-			assert.Equal(t, tt.wantName, resolved.Name)
+			assert.Equal(t, tt.wantToolName, resolved.ToolName)
 			assert.Equal(t, tt.wantAlias, resolved.AliasName)
-			assert.Equal(t, tt.wantCommand, resolved.Command.Command)
+			assert.Equal(t, tt.wantRun, resolved.Tool.Run)
 			assert.Equal(t, tt.wantAliasArgs, resolved.AliasArgs)
 		})
 	}

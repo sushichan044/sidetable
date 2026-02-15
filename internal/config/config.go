@@ -15,46 +15,49 @@ import (
 )
 
 var (
-	ErrConfigMissing               = errors.New("config.yml file not found")
-	ErrCommandsMissing             = errors.New("commands are required")
-	ErrCommandUnknown              = errors.New("command not found")
-	ErrDirectoryRequired           = errors.New("directory is required")
-	ErrDirectoryMustBeRelative     = errors.New("directory must be relative")
-	ErrCommandRequired             = errors.New("command is required")
-	ErrCommandMustNotContainSpaces = errors.New("command must not contain spaces")
-	ErrCommandConflictsWithBuiltin = errors.New("command conflicts with builtin command")
-	ErrAliasDuplicate              = errors.New("alias is duplicated")
-	ErrAliasConflictsWithCommand   = errors.New("alias conflicts with command name")
-	ErrAliasConflictsWithBuiltin   = errors.New("alias conflicts with builtin command")
-	ErrAliasNameRequired           = errors.New("alias name is required")
-	ErrAliasMustNotContainSpaces   = errors.New("alias must not contain spaces")
-	ErrAliasCommandRequired        = errors.New("alias command is required")
-	ErrAliasTargetUnknown          = errors.New("alias command not found")
-	ErrLegacyCommandAliasRemoved   = errors.New("commands.<name>.alias has been removed; use top-level aliases")
+	ErrConfigMissing              = errors.New("config.yml file not found")
+	ErrToolsMissing               = errors.New("tools are required")
+	ErrEntryUnknown               = errors.New("entry not found")
+	ErrDirectoryRequired          = errors.New("directory is required")
+	ErrDirectoryMustBeRelative    = errors.New("directory must be relative")
+	ErrToolRunRequired            = errors.New("tool run is required")
+	ErrToolRunMustNotContainSpace = errors.New("tool run must not contain spaces")
+	ErrToolConflictsWithBuiltin   = errors.New("tool conflicts with builtin command")
+	ErrAliasConflictsWithTool     = errors.New("alias conflicts with tool name")
+	ErrAliasConflictsWithBuiltin  = errors.New("alias conflicts with builtin command")
+	ErrAliasNameRequired          = errors.New("alias name is required")
+	ErrAliasMustNotContainSpaces  = errors.New("alias must not contain spaces")
+	ErrAliasToolRequired          = errors.New("alias tool is required")
+	ErrAliasTargetUnknown         = errors.New("alias tool not found")
+	ErrLegacyCommandsRemoved      = errors.New("top-level commands has been removed; use tools")
+	ErrLegacyToolCommandRemoved   = errors.New("tools.<name>.command has been removed; use run")
+	ErrLegacyAliasCommandRemoved  = errors.New("aliases.<name>.command has been removed; use tool")
 )
 
 // Config represents configuration file structure.
 type Config struct {
-	Directory string             `yaml:"directory"` // User's private directory per project
-	Commands  map[string]Command `yaml:"commands"`
-	Aliases   map[string]Alias   `yaml:"aliases"`
-	ConfigDir string             `yaml:"-"` // INTERNAL: Directory of the loaded config file
+	Directory      string           `yaml:"directory"`
+	Tools          map[string]Tool  `yaml:"tools"`
+	Aliases        map[string]Alias `yaml:"aliases"`
+	LegacyCommands map[string]any   `yaml:"commands"`
+	ConfigDir      string           `yaml:"-"`
 }
 
-// Command represents a delegated command configuration.
-type Command struct {
-	Command     string            `yaml:"command"`
-	Args        Args              `yaml:"args"`
-	Env         map[string]string `yaml:"env"`
-	Description string            `yaml:"description"`
-	LegacyAlias *string           `yaml:"alias"`
+// Tool represents a tool definition.
+type Tool struct {
+	Run           string            `yaml:"run"`
+	Args          Args              `yaml:"args"`
+	Env           map[string]string `yaml:"env"`
+	Description   string            `yaml:"description"`
+	LegacyCommand *string           `yaml:"command"`
 }
 
-// Alias represents a command alias configuration.
+// Alias represents an alias definition.
 type Alias struct {
-	Command     string `yaml:"command"`
-	Args        Args   `yaml:"args"`
-	Description string `yaml:"description"`
+	Tool          string  `yaml:"tool"`
+	Args          Args    `yaml:"args"`
+	Description   string  `yaml:"description"`
+	LegacyCommand *string `yaml:"command"`
 }
 
 // Args represents user-arg injection configuration.
@@ -63,16 +66,12 @@ type Args struct {
 	Append  []string `yaml:"append"`
 }
 
-// ResolvedCommand represents a fully resolved command with optional alias information.
-type ResolvedCommand struct {
-	Name    string
-	Command Command
-	// The name of the alias used to invoke this command, if any.
-	// Empty if invoked by the original command name.
+// ResolvedEntry represents a resolved entry with optional alias information.
+type ResolvedEntry struct {
+	ToolName  string
+	Tool      Tool
 	AliasName string
 	AliasArgs *Args
-	// DisplayName is the resolved CLI entrypoint name (command or alias).
-	DisplayName string
 }
 
 const configDirEnv = "SIDETABLE_CONFIG_DIR"
@@ -143,11 +142,14 @@ func (c *Config) Validate() error {
 	if filepath.IsAbs(c.Directory) {
 		errs = append(errs, ErrDirectoryMustBeRelative)
 	}
-	if len(c.Commands) == 0 {
-		errs = append(errs, ErrCommandsMissing)
+	if len(c.LegacyCommands) > 0 {
+		errs = append(errs, ErrLegacyCommandsRemoved)
+	}
+	if len(c.Tools) == 0 {
+		errs = append(errs, ErrToolsMissing)
 	}
 
-	errs = append(errs, c.validateCommands()...)
+	errs = append(errs, c.validateTools()...)
 	errs = append(errs, c.validateAliases()...)
 
 	if len(errs) == 0 {
@@ -157,26 +159,26 @@ func (c *Config) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (c *Config) validateCommands() []error {
-	if len(c.Commands) == 0 {
+func (c *Config) validateTools() []error {
+	if len(c.Tools) == 0 {
 		return nil
 	}
 
-	commandNames := c.CommandNames()
+	toolNames := c.ToolNames()
 	errs := make([]error, 0)
-	for _, name := range commandNames {
-		cmd := c.Commands[name]
-		if strings.TrimSpace(cmd.Command) == "" {
-			errs = append(errs, fmt.Errorf("command %q: %w", name, ErrCommandRequired))
+	for _, name := range toolNames {
+		tool := c.Tools[name]
+		if tool.LegacyCommand != nil {
+			errs = append(errs, fmt.Errorf("tool %q: %w", name, ErrLegacyToolCommandRemoved))
 		}
-		if strings.ContainsAny(cmd.Command, " \t\n\r") {
-			errs = append(errs, fmt.Errorf("command %q: %w", name, ErrCommandMustNotContainSpaces))
+		if strings.TrimSpace(tool.Run) == "" {
+			errs = append(errs, fmt.Errorf("tool %q: %w", name, ErrToolRunRequired))
 		}
-		if builtin.IsReservedCommand(name) {
-			errs = append(errs, fmt.Errorf("command %q: %w", name, ErrCommandConflictsWithBuiltin))
+		if strings.ContainsAny(tool.Run, " \t\n\r") {
+			errs = append(errs, fmt.Errorf("tool %q: %w", name, ErrToolRunMustNotContainSpace))
 		}
-		if cmd.LegacyAlias != nil {
-			errs = append(errs, fmt.Errorf("command %q: %w", name, ErrLegacyCommandAliasRemoved))
+		if builtin.IsReservedName(name) {
+			errs = append(errs, fmt.Errorf("tool %q: %w", name, ErrToolConflictsWithBuiltin))
 		}
 	}
 
@@ -203,18 +205,21 @@ func (c *Config) validateAliases() []error {
 		if strings.ContainsAny(aliasName, " \t\n\r") {
 			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasMustNotContainSpaces))
 		}
-		aliasCommand := strings.TrimSpace(alias.Command)
-		if aliasCommand == "" {
-			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasCommandRequired))
+		if alias.LegacyCommand != nil {
+			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrLegacyAliasCommandRemoved))
 		}
-		if _, exists := c.Commands[aliasName]; exists {
-			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithCommand))
+		aliasTool := strings.TrimSpace(alias.Tool)
+		if aliasTool == "" {
+			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasToolRequired))
 		}
-		if builtin.IsReservedCommand(aliasName) {
+		if _, exists := c.Tools[aliasName]; exists {
+			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithTool))
+		}
+		if builtin.IsReservedName(aliasName) {
 			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithBuiltin))
 		}
-		if aliasCommand != "" {
-			if _, exists := c.Commands[aliasCommand]; !exists {
+		if aliasTool != "" {
+			if _, exists := c.Tools[aliasTool]; !exists {
 				errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasTargetUnknown))
 			}
 		}
@@ -223,39 +228,37 @@ func (c *Config) validateAliases() []error {
 	return errs
 }
 
-// ResolveCommand resolves command by name or alias.
-func (c *Config) ResolveCommand(name string) (*ResolvedCommand, error) {
-	if cmd, ok := c.Commands[name]; ok {
-		return &ResolvedCommand{
-			Name:        name,
-			Command:     cmd,
-			AliasName:   "",
-			AliasArgs:   nil,
-			DisplayName: name,
+// ResolveEntry resolves a tool or alias name.
+func (c *Config) ResolveEntry(name string) (*ResolvedEntry, error) {
+	if tool, ok := c.Tools[name]; ok {
+		return &ResolvedEntry{
+			ToolName:  name,
+			Tool:      tool,
+			AliasName: "",
+			AliasArgs: nil,
 		}, nil
 	}
 	alias, ok := c.Aliases[name]
 	if !ok {
-		return nil, ErrCommandUnknown
+		return nil, ErrEntryUnknown
 	}
-	cmd, ok := c.Commands[alias.Command]
+	tool, ok := c.Tools[alias.Tool]
 	if !ok {
-		return nil, ErrCommandUnknown
+		return nil, ErrEntryUnknown
 	}
 
-	return &ResolvedCommand{
-		Name:        alias.Command,
-		Command:     cmd,
-		AliasName:   name,
-		AliasArgs:   &alias.Args,
-		DisplayName: name,
+	return &ResolvedEntry{
+		ToolName:  alias.Tool,
+		Tool:      tool,
+		AliasName: name,
+		AliasArgs: &alias.Args,
 	}, nil
 }
 
-// CommandNames returns sorted command names.
-func (c *Config) CommandNames() []string {
-	names := make([]string, 0, len(c.Commands))
-	for name := range c.Commands {
+// ToolNames returns sorted tool names.
+func (c *Config) ToolNames() []string {
+	names := make([]string, 0, len(c.Tools))
+	for name := range c.Tools {
 		names = append(names, name)
 	}
 	sort.Strings(names)

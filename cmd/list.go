@@ -11,53 +11,47 @@ import (
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List available commands",
-	Long: `List available commands defined in the sidetable configuration for the current project.
+	Short: "List available tools and aliases",
+	Long: `List available tools and aliases defined in the sidetable configuration for the current project.
 
-The output shows command/alias name, kind, target, and description for each configured command.`,
+The output shows entry name, kind, target, and description for each configured entry.`,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cwd, err := os.Getwd()
 		if err != nil {
 			return err
 		}
 
-		project, err := sidetable.NewProject(cwd)
+		workspace, err := sidetable.Open(cwd)
 		if err != nil {
 			return err
 		}
 
-		cmds, listErr := project.ListCommands()
-		if listErr != nil {
-			return listErr
+		catalog, catalogErr := workspace.Catalog()
+		if catalogErr != nil {
+			return catalogErr
 		}
 
 		formatter := spacing.NewFormatter(
-			spacing.Column(), // Command Name
-			//nolint:mnd // Justification: fixed spacing value for better readability
+			spacing.Column(), // Entry name
+			//nolint:mnd // fixed spacing value for readability
 			spacing.MinSpacing(2),
 			spacing.Column(), // Kind
-			//nolint:mnd // Justification: fixed spacing value for better readability
+			//nolint:mnd // fixed spacing value for readability
 			spacing.MinSpacing(4),
 			spacing.Column(), // Target
-			//nolint:mnd // Justification: fixed spacing value for better readability
+			//nolint:mnd // fixed spacing value for readability
 			spacing.MinSpacing(4),
 			spacing.Column(), // Description
 		)
 
-		rows := make([][]string, 0, len(cmds.Commands)+len(cmds.Aliases)+len(cmds.Invalid))
-		for _, info := range cmds.Commands {
-			rows = append(rows, []string{info.Name, "command", "-", info.Description})
-		}
-		for _, info := range cmds.Aliases {
-			rows = append(rows, []string{info.Name, "alias", info.Target, info.Description})
-		}
-		for _, info := range cmds.Invalid {
-			rows = append(rows, []string{
-				info.Name,
-				"invalid " + info.Kind,
-				info.Target,
-				info.Description + " (" + info.Reason + ")",
-			})
+		rows := make([][]string, 0, len(catalog.Entries)+1)
+		rows = append(rows, []string{"NAME", "KIND", "TARGET", "DESCRIPTION"})
+		for _, entry := range catalog.Entries {
+			target := "-"
+			if entry.Kind == sidetable.EntryKindAlias {
+				target = entry.Target
+			}
+			rows = append(rows, []string{entry.Name, string(entry.Kind), target, entry.Description})
 		}
 		if fmtErr := formatter.AddRows(rows...); fmtErr != nil {
 			return fmtErr

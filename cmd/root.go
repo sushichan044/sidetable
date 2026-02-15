@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -14,11 +15,11 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "sidetable",
-	Short: "Personal directory manager per project",
-	Long: `sidetable manages a project-local private area and runs commands defined in your project configuration.
+	Short: "Project-local tool workspace manager",
+	Long: `sidetable manages a project-local tool area and runs tools defined in your configuration.
 
-Define commands in config.yml, then execute them as "sidetable <command> [args...]".
-Use "sidetable list" to inspect available commands.`,
+Define tools in config.yml, then execute them as "sidetable <tool-or-alias> [args...]".
+Use "sidetable list" to inspect available entries.`,
 	SilenceUsage: true,
 	Version:      version.Get(),
 }
@@ -28,8 +29,8 @@ func Execute() int {
 	if err := injectUserDefinedCommands(); err != nil {
 		fmt.Fprintln(os.Stderr, color.RedString("Error occurred while loading config:"))
 
-		// // If config loading fails, print error details and continue.
-		// // This allows users to use built-in commands like "help" or "init" anytime.
+		// If config loading fails, print error details and continue.
+		// This allows users to use built-in commands like "help" or "init" anytime.
 		errs, _ := errutils.UnwrapJoinError(err)
 		for _, e := range errs {
 			fmt.Fprintln(os.Stderr, color.RedString("- %v", e))
@@ -48,58 +49,12 @@ func determineExitCode(err error) int {
 		return 0
 	}
 
-	execErr := sidetable.GetExecError(err)
-	if execErr != nil {
-		return execErr.Code
+	invErr, ok := sidetable.AsInvocationError(err)
+	if ok {
+		return invErr.Code
 	}
 
 	return 1
-}
-
-func buildProjectCommands(project *sidetable.Project) []*cobra.Command {
-	commands, err := project.ListCommands()
-	if err != nil {
-		return nil
-	}
-
-	cmds := make([]*cobra.Command, 0, len(commands.Commands)+len(commands.Aliases))
-	for _, info := range commands.Commands {
-		subCmd := &cobra.Command{
-			Use:                info.Name,
-			Short:              info.Description,
-			DisableFlagParsing: true,
-			SilenceErrors:      true,
-			SilenceUsage:       true,
-			RunE: func(_ *cobra.Command, args []string) error {
-				act, buildErr := project.BuildAction(info.Name, args)
-				if buildErr != nil {
-					return buildErr
-				}
-				return project.Execute(act)
-			},
-		}
-		cmds = append(cmds, subCmd)
-	}
-
-	for _, info := range commands.Aliases {
-		subCmd := &cobra.Command{
-			Use:                info.Name,
-			Short:              info.Description,
-			DisableFlagParsing: true,
-			SilenceErrors:      true,
-			SilenceUsage:       true,
-			RunE: func(_ *cobra.Command, args []string) error {
-				act, buildErr := project.BuildAction(info.Name, args)
-				if buildErr != nil {
-					return buildErr
-				}
-				return project.Execute(act)
-			},
-		}
-		cmds = append(cmds, subCmd)
-	}
-
-	return cmds
 }
 
 func injectUserDefinedCommands() error {
@@ -108,13 +63,38 @@ func injectUserDefinedCommands() error {
 		return err
 	}
 
-	project, err := sidetable.NewProject(cwd)
+	workspace, err := sidetable.Open(cwd)
 	if err != nil {
 		return err
 	}
 
-	subCommands := buildProjectCommands(project)
+	subCommands := buildWorkspaceCommands(workspace)
 	rootCmd.AddCommand(subCommands...)
 
 	return nil
+}
+
+func buildWorkspaceCommands(workspace *sidetable.Workspace) []*cobra.Command {
+	catalog, err := workspace.Catalog()
+	if err != nil {
+		return nil
+	}
+
+	cmds := make([]*cobra.Command, 0, len(catalog.Entries))
+	for _, entry := range catalog.Entries {
+		name := entry.Name
+		description := entry.Description
+		subCmd := &cobra.Command{
+			Use:                name,
+			Short:              description,
+			DisableFlagParsing: true,
+			SilenceUsage:       true,
+			RunE: func(_ *cobra.Command, args []string) error {
+				return workspace.Run(context.Background(), name, args, sidetable.InvokeOptions{})
+			},
+		}
+		cmds = append(cmds, subCmd)
+	}
+
+	return cmds
 }

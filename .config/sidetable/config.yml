@@ -1,31 +1,26 @@
-# Required. Sets the project-local private area name.
-# If sets to ".sidetable", the private area path is "./.sidetable"
+# Required. Project-local tool area name.
 directory: ".sidetable"
 
-commands:
+tools:
   ghq:
-    # Required. Command name to execute.
-    command: "ghq"
+    # Required. Program name to execute.
+    run: "ghq"
     env:
-      # You can use `{{.CommandDir}}` to get the command-local directory path.
-      # In this example, GHQ_ROOT is set to "./.sidetable/ghq"
-      GHQ_ROOT: "{{.CommandDir}}"
-    # Optional. Description shown in `sidetable list`.
+      # Tool-specific directory path.
+      GHQ_ROOT: "{{.ToolDir}}"
     description: "ghq wrapper with project-local root"
 
   note:
-    # You can use `{{.ConfigDir}}` to get the configuration directory path.
-    # You can set your own shell scripts as command.
-    command: "{{.ConfigDir}}/vim-note.sh"
+    # You can reference the config directory.
+    run: "{{.ConfigDir}}/vim-note.sh"
     args:
-      # Optional. Arguments added after user-provided args.
       append:
-        - "{{.CommandDir}}/note.md"
+        - "{{.ToolDir}}/note.md"
     description: "Open project note file"
 
 aliases:
   gg:
-    command: "ghq"
+    tool: "ghq"
     args:
       prepend:
         - "get"
