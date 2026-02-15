@@ -9,7 +9,7 @@ import (
 	"github.com/sushichan044/sidetable/internal/config"
 )
 
-func TestDefaultConfigYAMLDefaultsToToolsMissing(t *testing.T) {
+func TestDefaultConfigYAMLIsValid(t *testing.T) {
 	require.NotEmpty(t, config.DefaultConfigYAML)
 
 	var cfg config.Config
