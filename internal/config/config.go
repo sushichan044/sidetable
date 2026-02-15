@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ErrConfigMissing = errors.New("config.yml file not found")
+	ErrConfigMissing = errors.New("config file not found. Please run `sidetable init` to create one")
 	ErrEntryUnknown  = errors.New("entry not found")
 )
 
@@ -21,7 +21,7 @@ type Config struct {
 	Directory string           `yaml:"directory"`
 	Tools     map[string]Tool  `yaml:"tools"`
 	Aliases   map[string]Alias `yaml:"aliases"`
-	ConfigDir string           `yaml:"-"`
+	FilePath  string           `yaml:"-"`
 }
 
 // Tool represents a tool definition.
@@ -76,17 +76,17 @@ func FindConfigPath() (string, error) {
 // GetConfigPath returns the config path from SIDETABLE_CONFIG_DIR or XDG_CONFIG_HOME.
 func GetConfigPath() (string, error) {
 	if dir := os.Getenv(configDirEnv); dir != "" {
-		return configPathFromDir(dir), nil
+		return defaultConfigPathFromDir(dir), nil
 	}
 	cfgHome, err := xdg.ConfigHome()
 	if err != nil {
 		return "", err
 	}
 
-	return configPathFromDir(filepath.Join(cfgHome, "sidetable")), nil
+	return defaultConfigPathFromDir(filepath.Join(cfgHome, "sidetable")), nil
 }
 
-func configPathFromDir(dir string) string {
+func defaultConfigPathFromDir(dir string) string {
 	cleanDir := filepath.Clean(dir)
 	return filepath.Join(cleanDir, "config.yml")
 }
@@ -102,7 +102,7 @@ func Load(path string) (*Config, error) {
 	if err = yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	cfg.ConfigDir = filepath.Dir(filepath.Clean(path))
+	cfg.FilePath = filepath.Clean(path)
 
 	if err = cfg.Validate(); err != nil {
 		return nil, err

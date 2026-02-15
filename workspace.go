@@ -55,7 +55,7 @@ func Open(root string, opts ...Option) (*Workspace, error) {
 
 	path := openOpts.configPath
 	if path == "" {
-		path, err = config.GetConfigPath()
+		path, err = config.FindConfigPath()
 		if err != nil {
 			return nil, err
 		}

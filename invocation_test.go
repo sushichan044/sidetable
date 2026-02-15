@@ -53,7 +53,7 @@ func TestResolveInvocationTemplateEvaluation(t *testing.T) {
 	configDir := t.TempDir()
 	cfg := &config.Config{
 		Directory: ".private",
-		ConfigDir: configDir,
+		FilePath:  filepath.Join(configDir, "config.yml"),
 		Tools: map[string]config.Tool{
 			"tool": {
 				Run: "{{.ToolDir}}",
@@ -68,8 +68,8 @@ func TestResolveInvocationTemplateEvaluation(t *testing.T) {
 	inv, err := resolveInvocation(cfg, "tool", []string{}, workspaceRoot)
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(workspaceRoot, ".private", "tool"), inv.Program)
-	require.Contains(t, inv.Env, "ROOT="+workspaceRoot)
 	require.Contains(t, inv.Env, "CONFIG="+configDir)
+	require.Contains(t, inv.Env, "ROOT="+workspaceRoot)
 }
 
 func TestResolveInvocationTemplateErrors(t *testing.T) {

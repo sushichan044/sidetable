@@ -74,7 +74,7 @@ func resolveInvocation(
 	ctx := templateContext{
 		WorkspaceRoot: workspaceRoot,
 		ToolDir:       filepath.Join(workspaceRoot, cfg.Directory, resolved.ToolName),
-		ConfigDir:     cfg.ConfigDir,
+		ConfigDir:     filepath.Dir(cfg.FilePath),
 	}
 
 	program, err := evalTemplate(resolved.Tool.Run, ctx)

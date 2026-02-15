@@ -18,8 +18,9 @@ var rootCmd = &cobra.Command{
 	Short: "Project-local tool workspace manager",
 	Long: `sidetable manages a project-local tool area and runs tools defined in your configuration.
 
-Define tools in config.yml, then execute them as "sidetable <tool-or-alias> [args...]".
-Use "sidetable list" to inspect available entries.`,
+Define tools in config file, then execute them as "sidetable <tool-or-alias> [args...]".
+Use "sidetable list" to inspect available entries.
+Use "sidetable init" to scaffold a config file.`,
 	SilenceUsage: true,
 	Version:      version.Get(),
 }

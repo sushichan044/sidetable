@@ -344,7 +344,7 @@ aliases:
 	require.NoError(t, err)
 
 	require.Equal(t, ".private", cfg.Directory)
-	require.Equal(t, filepath.Dir(path), cfg.ConfigDir)
+	require.Equal(t, path, cfg.FilePath)
 
 	tool, ok := cfg.Tools["ghq"]
 	require.True(t, ok)
