@@ -76,6 +76,13 @@ func FindConfigPath() (string, error) {
 // GetConfigPath returns the config path from SIDETABLE_CONFIG_DIR or XDG_CONFIG_HOME.
 func GetConfigPath() (string, error) {
 	if dir := os.Getenv(configDirEnv); dir != "" {
+		stat, err := os.Stat(dir)
+		if err != nil {
+			return "", err
+		}
+		if !stat.IsDir() {
+			return "", errors.New("SIDETABLE_CONFIG_DIR is not a directory")
+		}
 		return defaultConfigPathFromDir(dir), nil
 	}
 	cfgHome, err := xdg.ConfigHome()
