@@ -2,33 +2,18 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/sushichan044/sidetable/internal/builtin"
 	"github.com/sushichan044/sidetable/internal/xdg"
 )
 
 var (
-	ErrConfigMissing              = errors.New("config.yml file not found")
-	ErrToolsMissing               = errors.New("tools are required")
-	ErrEntryUnknown               = errors.New("entry not found")
-	ErrDirectoryRequired          = errors.New("directory is required")
-	ErrDirectoryMustBeRelative    = errors.New("directory must be relative")
-	ErrToolRunRequired            = errors.New("tool run is required")
-	ErrToolRunMustNotContainSpace = errors.New("tool run must not contain spaces")
-	ErrToolConflictsWithBuiltin   = errors.New("tool conflicts with builtin command")
-	ErrAliasConflictsWithTool     = errors.New("alias conflicts with tool name")
-	ErrAliasConflictsWithBuiltin  = errors.New("alias conflicts with builtin command")
-	ErrAliasNameRequired          = errors.New("alias name is required")
-	ErrAliasMustNotContainSpaces  = errors.New("alias must not contain spaces")
-	ErrAliasToolRequired          = errors.New("alias tool is required")
-	ErrAliasTargetUnknown         = errors.New("alias tool not found")
+	ErrConfigMissing = errors.New("config.yml file not found")
+	ErrEntryUnknown  = errors.New("entry not found")
 )
 
 // Config represents configuration file structure.
@@ -128,89 +113,17 @@ func Load(path string) (*Config, error) {
 
 // Validate ensures config follows the specification.
 func (c *Config) Validate() error {
-	errs := make([]error, 0)
-
-	if strings.TrimSpace(c.Directory) == "" {
-		errs = append(errs, ErrDirectoryRequired)
-	}
-	if filepath.IsAbs(c.Directory) {
-		errs = append(errs, ErrDirectoryMustBeRelative)
-	}
-	if len(c.Tools) == 0 {
-		errs = append(errs, ErrToolsMissing)
-	}
-
-	errs = append(errs, c.validateTools()...)
-	errs = append(errs, c.validateAliases()...)
-
-	if len(errs) == 0 {
+	issues := ConfigSchema.Validate(c)
+	if len(issues) == 0 {
 		return nil
+	}
+
+	errs := make([]error, 0, len(issues))
+	for _, issue := range issues {
+		errs = append(errs, issue)
 	}
 
 	return errors.Join(errs...)
-}
-
-func (c *Config) validateTools() []error {
-	if len(c.Tools) == 0 {
-		return nil
-	}
-
-	toolNames := c.ToolNames()
-	errs := make([]error, 0)
-	for _, name := range toolNames {
-		tool := c.Tools[name]
-		if strings.TrimSpace(tool.Run) == "" {
-			errs = append(errs, fmt.Errorf("tool %q: %w", name, ErrToolRunRequired))
-		}
-		if strings.ContainsAny(tool.Run, " \t\n\r") {
-			errs = append(errs, fmt.Errorf("tool %q: %w", name, ErrToolRunMustNotContainSpace))
-		}
-		if builtin.IsReservedName(name) {
-			errs = append(errs, fmt.Errorf("tool %q: %w", name, ErrToolConflictsWithBuiltin))
-		}
-	}
-
-	return errs
-}
-
-func (c *Config) validateAliases() []error {
-	if len(c.Aliases) == 0 {
-		return nil
-	}
-
-	aliasNames := make([]string, 0, len(c.Aliases))
-	for aliasName := range c.Aliases {
-		aliasNames = append(aliasNames, aliasName)
-	}
-	sort.Strings(aliasNames)
-
-	errs := make([]error, 0)
-	for _, aliasName := range aliasNames {
-		alias := c.Aliases[aliasName]
-		if strings.TrimSpace(aliasName) == "" {
-			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasNameRequired))
-		}
-		if strings.ContainsAny(aliasName, " \t\n\r") {
-			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasMustNotContainSpaces))
-		}
-		aliasTool := strings.TrimSpace(alias.Tool)
-		if aliasTool == "" {
-			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasToolRequired))
-		}
-		if _, exists := c.Tools[aliasName]; exists {
-			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithTool))
-		}
-		if builtin.IsReservedName(aliasName) {
-			errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasConflictsWithBuiltin))
-		}
-		if aliasTool != "" {
-			if _, exists := c.Tools[aliasTool]; !exists {
-				errs = append(errs, fmt.Errorf("alias %q: %w", aliasName, ErrAliasTargetUnknown))
-			}
-		}
-	}
-
-	return errs
 }
 
 // ResolveEntry resolves a tool or alias name.

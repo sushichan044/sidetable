@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	z "github.com/Oudwins/zog"
 
 	"github.com/sushichan044/sidetable/internal/config"
 )
@@ -93,7 +96,7 @@ func TestValidate(t *testing.T) {
 
 	t.Run("missing directory", func(t *testing.T) {
 		cfg := &config.Config{Tools: map[string]config.Tool{"a": {Run: "a"}}}
-		require.ErrorIs(t, cfg.Validate(), config.ErrDirectoryRequired)
+		requireHasIssue(t, cfg.Validate(), "directory", "directory is required")
 	})
 
 	t.Run("absolute directory", func(t *testing.T) {
@@ -105,12 +108,12 @@ func TestValidate(t *testing.T) {
 			Directory: abs,
 			Tools:     map[string]config.Tool{"a": {Run: "a"}},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrDirectoryMustBeRelative)
+		requireHasIssue(t, cfg.Validate(), "directory", "directory must be relative")
 	})
 
 	t.Run("missing tools key", func(t *testing.T) {
 		cfg := &config.Config{Directory: ".private"}
-		require.ErrorIs(t, cfg.Validate(), config.ErrToolsMissing)
+		requireHasIssue(t, cfg.Validate(), "tools", "tools are required")
 	})
 
 	t.Run("empty run", func(t *testing.T) {
@@ -118,7 +121,7 @@ func TestValidate(t *testing.T) {
 			Directory: ".private",
 			Tools:     map[string]config.Tool{"a": {Run: ""}},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrToolRunRequired)
+		requireHasIssue(t, cfg.Validate(), `tools["a"].run`, "tool run is required")
 	})
 
 	t.Run("run with spaces", func(t *testing.T) {
@@ -126,7 +129,7 @@ func TestValidate(t *testing.T) {
 			Directory: ".private",
 			Tools:     map[string]config.Tool{"a": {Run: "bad run"}},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrToolRunMustNotContainSpace)
+		requireHasIssue(t, cfg.Validate(), `tools["a"].run`, "tool run must not contain spaces")
 	})
 
 	t.Run("tool collides with builtin", func(t *testing.T) {
@@ -136,7 +139,7 @@ func TestValidate(t *testing.T) {
 				"list": {Run: "ghq"},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrToolConflictsWithBuiltin)
+		requireHasIssue(t, cfg.Validate(), `tools["list"]`, "tool conflicts with builtin command")
 	})
 
 	t.Run("alias tool required", func(t *testing.T) {
@@ -150,8 +153,8 @@ func TestValidate(t *testing.T) {
 			},
 		}
 		err := cfg.Validate()
-		require.ErrorIs(t, err, config.ErrAliasToolRequired)
-		require.NotErrorIs(t, err, config.ErrAliasTargetUnknown)
+		requireHasIssue(t, err, `aliases["x"].tool`, "alias tool is required")
+		requireNoIssueMessage(t, err, "alias tool not found")
 	})
 
 	t.Run("alias target unknown", func(t *testing.T) {
@@ -164,7 +167,7 @@ func TestValidate(t *testing.T) {
 				"x": {Tool: "missing"},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrAliasTargetUnknown)
+		requireHasIssue(t, cfg.Validate(), `aliases["x"].tool`, "alias tool not found")
 	})
 
 	t.Run("alias with spaces", func(t *testing.T) {
@@ -177,7 +180,7 @@ func TestValidate(t *testing.T) {
 				"bad alias": {Tool: "a"},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrAliasMustNotContainSpaces)
+		requireHasIssue(t, cfg.Validate(), `aliases["bad alias"]`, "alias must not contain spaces")
 	})
 
 	t.Run("alias collides with tool", func(t *testing.T) {
@@ -190,7 +193,7 @@ func TestValidate(t *testing.T) {
 				"a": {Tool: "a"},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrAliasConflictsWithTool)
+		requireHasIssue(t, cfg.Validate(), `aliases["a"]`, "alias conflicts with tool name")
 	})
 
 	t.Run("alias collides with builtin", func(t *testing.T) {
@@ -203,7 +206,7 @@ func TestValidate(t *testing.T) {
 				"list": {Tool: "a"},
 			},
 		}
-		require.ErrorIs(t, cfg.Validate(), config.ErrAliasConflictsWithBuiltin)
+		requireHasIssue(t, cfg.Validate(), `aliases["list"]`, "alias conflicts with builtin command")
 	})
 
 	t.Run("collects multiple validation errors", func(t *testing.T) {
@@ -223,11 +226,64 @@ func TestValidate(t *testing.T) {
 
 		err := cfg.Validate()
 		require.Error(t, err)
-		require.ErrorIs(t, err, config.ErrToolRunMustNotContainSpace)
-		require.ErrorIs(t, err, config.ErrToolConflictsWithBuiltin)
-		require.ErrorIs(t, err, config.ErrAliasConflictsWithBuiltin)
-		require.ErrorIs(t, err, config.ErrAliasTargetUnknown)
+		requireHasIssue(t, err, `tools["list"].run`, "tool run must not contain spaces")
+		requireHasIssue(t, err, `tools["list"]`, "tool conflicts with builtin command")
+		requireHasIssue(t, err, `aliases["help"]`, "alias conflicts with builtin command")
+		requireHasIssue(t, err, `aliases["help"].tool`, "alias tool not found")
 	})
+}
+
+func requireHasIssue(t *testing.T, err error, path string, message string) {
+	t.Helper()
+	require.Error(t, err)
+
+	issues := collectIssues(err)
+	for _, issue := range issues {
+		if issue.PathString() == path && issue.Message == message {
+			return
+		}
+	}
+
+	t.Fatalf("issue not found path=%q message=%q issues=%v", path, message, issues)
+}
+
+func requireNoIssueMessage(t *testing.T, err error, message string) {
+	t.Helper()
+	require.Error(t, err)
+
+	issues := collectIssues(err)
+	for _, issue := range issues {
+		if issue.Message == message {
+			t.Fatalf("unexpected issue found message=%q issues=%v", message, issues)
+		}
+	}
+}
+
+func collectIssues(err error) z.ZogIssueList {
+	issues := make(z.ZogIssueList, 0)
+
+	var walk func(error)
+	walk = func(e error) {
+		if e == nil {
+			return
+		}
+
+		var joinErr interface{ Unwrap() []error }
+		if errors.As(e, &joinErr) {
+			for _, unwrapped := range joinErr.Unwrap() {
+				walk(unwrapped)
+			}
+			return
+		}
+
+		var issue *z.ZogIssue
+		if errors.As(e, &issue) {
+			issues = append(issues, issue)
+		}
+	}
+
+	walk(err)
+	return issues
 }
 
 func TestResolveEntryName(t *testing.T) {
