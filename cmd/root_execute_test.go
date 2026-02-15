@@ -79,16 +79,16 @@ func runExecuteWithTempConfig(t *testing.T, configYAML string, args ...string) (
 
 	origOut := rootCmd.OutOrStdout()
 	origErr := rootCmd.ErrOrStderr()
-	t.Cleanup(func() {
-		clearInjectedUserCommands()
-		rootCmd.SetOut(origOut)
-		rootCmd.SetErr(origErr)
-		rootCmd.SetArgs(nil)
-	})
 
 	rootCmd.SetOut(&stdout)
 	rootCmd.SetErr(&stderr)
 	rootCmd.SetArgs(args)
 
-	return Execute(), stderr.String()
+	exitCode := Execute()
+	rootCmd.SetOut(origOut)
+	rootCmd.SetErr(origErr)
+	rootCmd.SetArgs(nil)
+	clearInjectedUserCommands()
+
+	return exitCode, stderr.String()
 }
