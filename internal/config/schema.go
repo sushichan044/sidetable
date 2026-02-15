@@ -115,7 +115,8 @@ func validateCrossRules(config *Config) z.ZogIssueList {
 		aliasTool := strings.TrimSpace(alias.Tool)
 		if aliasTool != "" {
 			if _, exists := config.Tools[aliasTool]; !exists {
-				issues = append(issues, newCustomIssue(append(aliasPath, "tool"), msgAliasTargetUnknown))
+				aliasToolPath := []string{"aliases", bracketKey(aliasName), "tool"}
+				issues = append(issues, newCustomIssue(aliasToolPath, msgAliasTargetUnknown))
 			}
 		}
 	}
