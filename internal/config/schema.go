@@ -29,12 +29,24 @@ const (
 )
 
 var (
+	argsSchema = z.Struct(z.Shape{
+		"prepend": z.Slice(z.String()),
+		"append":  z.Slice(z.String()),
+	})
+	envSchema = z.EXPERIMENTAL_MAP[string, string](
+		z.String(),
+		z.String(),
+	)
+
 	toolSchema = z.Struct(z.Shape{
 		"run": z.String().
 			Required(z.Message(msgToolRunRequired)).
 			TestFunc(func(val *string, _ z.Ctx) bool {
 				return !strings.ContainsAny(*val, " \t\n\r")
 			}, z.Message(msgToolRunMustNotContainSpace)),
+		"args":        argsSchema,
+		"env":         envSchema,
+		"description": z.String(),
 	})
 	toolNameSchema = z.String().
 			TestFunc(func(val *string, _ z.Ctx) bool {
@@ -42,7 +54,9 @@ var (
 		}, z.Message(msgToolConflictsWithBuiltin))
 
 	aliasSchema = z.Struct(z.Shape{
-		"tool": z.String().Required(z.Message(msgAliasToolRequired)),
+		"tool":        z.String().Required(z.Message(msgAliasToolRequired)),
+		"args":        argsSchema,
+		"description": z.String(),
 	})
 	aliasNameSchema = z.String().
 			Required(z.Message(msgAliasNameRequired)).
