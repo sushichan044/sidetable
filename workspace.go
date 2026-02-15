@@ -40,7 +40,7 @@ func Open(root string, opts ...Option) (*Workspace, error) {
 	info, err := os.Stat(root)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("root does not exist: %s", root)
+			return nil, fmt.Errorf("root does not exist: %w", err)
 		}
 		return nil, fmt.Errorf("failed to stat root: %w", err)
 	}
