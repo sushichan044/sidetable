@@ -16,7 +16,6 @@ const (
 	msgDirectoryRequired       = "directory is required"
 	msgDirectoryMustBeRelative = "directory must be relative"
 
-	msgToolsRequired              = "tools are required"
 	msgToolRunRequired            = "tool run is required"
 	msgToolRunMustNotContainSpace = "tool run must not contain spaces"
 	msgToolConflictsWithBuiltin   = "tool conflicts with builtin command"
@@ -66,7 +65,7 @@ var (
 		"tools": z.EXPERIMENTAL_MAP[string, Tool](
 			toolNameSchema,
 			toolSchema,
-		).Required(z.Message(msgToolsRequired)),
+		),
 		"aliases": z.EXPERIMENTAL_MAP[string, Alias](
 			aliasNameSchema,
 			aliasSchema,

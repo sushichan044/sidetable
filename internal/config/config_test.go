@@ -111,11 +111,6 @@ func TestValidate(t *testing.T) {
 		requireHasIssue(t, cfg.Validate(), "directory", "directory must be relative")
 	})
 
-	t.Run("missing tools key", func(t *testing.T) {
-		cfg := &config.Config{Directory: ".private"}
-		requireHasIssue(t, cfg.Validate(), "tools", "tools are required")
-	})
-
 	t.Run("empty run", func(t *testing.T) {
 		cfg := &config.Config{
 			Directory: ".private",
