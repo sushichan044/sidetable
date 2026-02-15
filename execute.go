@@ -23,7 +23,7 @@ func (w *Workspace) execute(ctx context.Context, inv Invocation, opts InvokeOpti
 
 	// #nosec G204 -- command/args are from user-owned config; explicit delegation is intended.
 	cmd := exec.CommandContext(ctx, inv.Program, inv.Args...)
-	cmd.Env = append(os.Environ(), inv.Env...)
+	cmd.Env = inv.Env
 	if opts.Stdin != nil {
 		cmd.Stdin = opts.Stdin
 	} else {

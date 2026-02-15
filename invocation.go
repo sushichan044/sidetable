@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -92,10 +93,11 @@ func resolveInvocation(
 		return Invocation{}, err
 	}
 
-	env, err := buildEnv(resolved.Tool.Env, ctx)
+	envMap, err := buildEnvMap(resolved.Tool.Env, ctx)
 	if err != nil {
 		return Invocation{}, err
 	}
+	env := envSliceFromMap(envMap)
 
 	return Invocation{
 		Program: program,
@@ -160,15 +162,18 @@ func buildArgList(args []string, ctx templateContext) ([]string, error) {
 	return result, nil
 }
 
-func buildEnv(toolEnv map[string]string, ctx templateContext) ([]string, error) {
-	resolved := make([]string, 0, len(toolEnv))
+func buildEnvMap(toolEnv map[string]string, ctx templateContext) (map[string]string, error) {
+	osEnv := envMapFromSlice(os.Environ())
+
+	evaluatedToolEnv := make(map[string]string, len(toolEnv))
 	for key, raw := range toolEnv {
 		value, err := evalTemplate(raw, ctx)
 		if err != nil {
 			return nil, err
 		}
-		resolved = append(resolved, key+"="+value)
+		evaluatedToolEnv[key] = value
 	}
 
-	return resolved, nil
+	merged := mergeMap(osEnv, evaluatedToolEnv)
+	return merged, nil
 }
