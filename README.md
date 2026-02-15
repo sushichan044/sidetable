@@ -202,7 +202,7 @@ These fields are treated as Go text/template and rendered with the following var
 | ---------------- | ---------------------------------------- |
 | `.WorkspaceRoot` | current directory when running sidetable |
 | `.ToolDir`       | `.WorkspaceRoot/<directory>/<toolName>`  |
-| `.ConfigDir`     | directory containing `config.yml`        |
+| `.ConfigDir`     | directory containing the config file     |
 
 All directory variables are absolute paths.
 
