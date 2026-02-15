@@ -87,8 +87,7 @@ func GetConfigPath() (string, error) {
 }
 
 func defaultConfigPathFromDir(dir string) string {
-	cleanDir := filepath.Clean(dir)
-	return filepath.Join(cleanDir, "config.yml")
+	return filepath.Join(dir, "config.yml")
 }
 
 // Load reads and validates config from path.
