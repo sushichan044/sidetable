@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -162,20 +161,14 @@ func buildArgList(args []string, ctx templateContext) ([]string, error) {
 }
 
 func buildEnv(toolEnv map[string]string, ctx templateContext) ([]string, error) {
-	base := os.Environ()
-	if len(toolEnv) == 0 {
-		return base, nil
-	}
-
-	overrides := make(map[string]string, len(toolEnv))
+	resolved := make([]string, 0, len(toolEnv))
 	for key, raw := range toolEnv {
 		value, err := evalTemplate(raw, ctx)
 		if err != nil {
 			return nil, err
 		}
-		overrides[key] = value
+		resolved = append(resolved, key+"="+value)
 	}
 
-	merged := mergeMap(envMapFromSlice(base), overrides)
-	return envSliceFromMap(merged), nil
+	return resolved, nil
 }
