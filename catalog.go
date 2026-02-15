@@ -27,9 +27,9 @@ type Catalog struct {
 }
 
 // Catalog returns tools and aliases available in this workspace.
-func (w *Workspace) Catalog() (Catalog, error) {
+func (w *Workspace) Catalog() (*Catalog, error) {
 	if w == nil || w.config == nil {
-		return Catalog{}, errors.New("workspace is not initialized")
+		return nil, errors.New("workspace is not initialized")
 	}
 
 	entries := make([]Entry, 0, len(w.config.Tools)+len(w.config.Aliases))
@@ -57,5 +57,5 @@ func (w *Workspace) Catalog() (Catalog, error) {
 		})
 	}
 
-	return Catalog{Entries: entries}, nil
+	return &Catalog{Entries: entries}, nil
 }
