@@ -15,14 +15,15 @@ tools:
       append:
         - "from {{.ToolDir}}"
         - "on workspace {{.WorkspaceRoot}}"
-    # Optional. Override environment variables for the tool.
-    # Templating: allowed.
-    env:
     # Optional. Description shown in `sidetable list`.
     description: "Say hello"
   some-script:
     # You can use {{.ConfigDir}} to reference the directory containing this config file.
     run: "{{.ConfigDir}}/scripts/some-script.sh"
+    # Optional. Override environment variables for the tool.
+    # Templating: allowed.
+    env:
+      BASE_DIR: "{{.ToolDir}}"
 
 # Optional. Aliases for tools.
 aliases:
