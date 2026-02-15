@@ -12,16 +12,6 @@ import (
 	"github.com/sushichan044/sidetable/internal/builtin"
 )
 
-// ConfigSchemaType validates Config and returns zog issues.
-type ConfigSchemaType interface {
-	Validate(config *Config) z.ZogIssueList
-}
-
-// ConfigSchema validates Config using zog schemas + cross-field rules.
-var ConfigSchema ConfigSchemaType = defaultConfigSchema{}
-
-type defaultConfigSchema struct{}
-
 const (
 	msgDirectoryRequired          = "directory is required"
 	msgDirectoryMustBeRelative    = "directory must be relative"
@@ -37,59 +27,59 @@ const (
 	msgAliasTargetUnknown         = "alias tool not found"
 )
 
-var toolSchema = z.Struct(z.Shape{
-	"run": z.String().
-		Required(z.Message(msgToolRunRequired)).
-		TestFunc(func(val *string, _ z.Ctx) bool {
+var (
+	toolSchema = z.Struct(z.Shape{
+		"run": z.String().
+			Required(z.Message(msgToolRunRequired)).
+			TestFunc(func(val *string, _ z.Ctx) bool {
+				return !strings.ContainsAny(*val, " \t\n\r")
+			}, z.Message(msgToolRunMustNotContainSpace)),
+	})
+	toolNameSchema = z.String().
+			TestFunc(func(val *string, _ z.Ctx) bool {
+			return !builtin.IsReservedName(*val)
+		}, z.Message(msgToolConflictsWithBuiltin))
+
+	aliasSchema = z.Struct(z.Shape{
+		"tool": z.String().Required(z.Message(msgAliasToolRequired)),
+	})
+	aliasNameSchema = z.String().
+			Required(z.Message(msgAliasNameRequired)).
+			TestFunc(func(val *string, _ z.Ctx) bool {
 			return !strings.ContainsAny(*val, " \t\n\r")
-		}, z.Message(msgToolRunMustNotContainSpace)),
-})
-
-var toolNameSchema = z.String().
-	TestFunc(func(val *string, _ z.Ctx) bool {
-		return !builtin.IsReservedName(*val)
-	}, z.Message(msgToolConflictsWithBuiltin))
-
-var aliasSchema = z.Struct(z.Shape{
-	"tool": z.String().Required(z.Message(msgAliasToolRequired)),
-})
-
-var aliasNameSchema = z.String().
-	Required(z.Message(msgAliasNameRequired)).
-	TestFunc(func(val *string, _ z.Ctx) bool {
-		return !strings.ContainsAny(*val, " \t\n\r")
-	}, z.Message(msgAliasMustNotContainSpaces)).
-	TestFunc(func(val *string, _ z.Ctx) bool {
-		return !builtin.IsReservedName(*val)
-	}, z.Message(msgAliasConflictsWithBuiltin))
-
-var configBaseSchema = z.Struct(z.Shape{
-	"directory": z.String().
-		Required(z.Message(msgDirectoryRequired)).
+		}, z.Message(msgAliasMustNotContainSpaces)).
 		TestFunc(func(val *string, _ z.Ctx) bool {
-			return strings.TrimSpace(*val) != ""
-		}, z.Message(msgDirectoryRequired)).
-		TestFunc(func(val *string, _ z.Ctx) bool {
-			return !filepath.IsAbs(*val)
-		}, z.Message(msgDirectoryMustBeRelative)),
-	"tools": z.EXPERIMENTAL_MAP[string, Tool](
-		toolNameSchema,
-		toolSchema,
-	).Required(z.Message(msgToolsRequired)),
-	"aliases": z.EXPERIMENTAL_MAP[string, Alias](
-		aliasNameSchema,
-		aliasSchema,
-	),
-})
+			return !builtin.IsReservedName(*val)
+		}, z.Message(msgAliasConflictsWithBuiltin))
 
-func (defaultConfigSchema) Validate(config *Config) z.ZogIssueList {
-	if config == nil {
+	configSchema = z.Struct(z.Shape{
+		"directory": z.String().
+			Required(z.Message(msgDirectoryRequired)).
+			TestFunc(func(val *string, _ z.Ctx) bool {
+				return strings.TrimSpace(*val) != ""
+			}, z.Message(msgDirectoryRequired)).
+			TestFunc(func(val *string, _ z.Ctx) bool {
+				return !filepath.IsAbs(*val)
+			}, z.Message(msgDirectoryMustBeRelative)),
+		"tools": z.EXPERIMENTAL_MAP[string, Tool](
+			toolNameSchema,
+			toolSchema,
+		).Required(z.Message(msgToolsRequired)),
+		"aliases": z.EXPERIMENTAL_MAP[string, Alias](
+			aliasNameSchema,
+			aliasSchema,
+		),
+	})
+)
+
+func (c *Config) validateWithSchema() z.ZogIssueList {
+	if c == nil {
 		return z.ZogIssueList{newCustomIssue(nil, "config is nil")}
 	}
 
 	issues := make(z.ZogIssueList, 0)
-	issues = append(issues, configBaseSchema.Validate(config)...)
-	issues = append(issues, validateCrossRules(config)...)
+	issues = append(issues, configSchema.Validate(c)...)
+	issues = append(issues, validateCrossRules(c)...)
 
 	sort.SliceStable(issues, func(i, j int) bool {
 		lhsPath := issues[i].PathString()

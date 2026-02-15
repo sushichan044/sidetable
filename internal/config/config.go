@@ -113,7 +113,7 @@ func Load(path string) (*Config, error) {
 
 // Validate ensures config follows the specification.
 func (c *Config) Validate() error {
-	issues := ConfigSchema.Validate(c)
+	issues := c.validateWithSchema()
 	if len(issues) == 0 {
 		return nil
 	}
