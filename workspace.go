@@ -88,9 +88,5 @@ func (w *Workspace) Run(ctx context.Context, name string, userArgs []string, opt
 		return err
 	}
 
-	return w.execute(ctx, inv, InvokeOptions{
-		Stdin:  opts.Stdin,
-		Stdout: opts.Stdout,
-		Stderr: opts.Stderr,
-	})
+	return w.execute(ctx, inv, opts)
 }
