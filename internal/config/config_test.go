@@ -77,6 +77,18 @@ func TestResolvePathFallbackXDG(t *testing.T) {
 	require.Equal(t, configPath, path)
 }
 
+func TestConfigPathEnvDirNotADirectory(t *testing.T) {
+	base := t.TempDir()
+	filePath := filepath.Join(base, "not_a_dir")
+	require.NoError(t, os.WriteFile(filePath, []byte("I am a file, not a directory"), 0o600))
+
+	t.Setenv("SIDETABLE_CONFIG_DIR", filePath)
+
+	_, err := config.GetConfigPath()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "SIDETABLE_CONFIG_DIR is not a directory")
+}
+
 func TestValidate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		cfg := &config.Config{
