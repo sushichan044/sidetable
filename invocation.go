@@ -64,6 +64,7 @@ func resolveInvocation(
 	entryName string,
 	userArgs []string,
 	workspaceRoot string,
+	baseEnv []string,
 ) (Invocation, error) {
 	resolved, err := cfg.ResolveEntry(entryName)
 	if err != nil {
@@ -73,7 +74,7 @@ func resolveInvocation(
 	ctx := templateContext{
 		WorkspaceRoot: workspaceRoot,
 		ToolDir:       filepath.Join(workspaceRoot, cfg.Directory, resolved.ToolName),
-		ConfigDir:     cfg.ConfigDir,
+		ConfigDir:     filepath.Dir(cfg.FilePath),
 	}
 
 	program, err := evalTemplate(resolved.Tool.Run, ctx)
@@ -92,10 +93,11 @@ func resolveInvocation(
 		return Invocation{}, err
 	}
 
-	env, err := buildEnv(resolved.Tool.Env, ctx)
+	envMap, err := buildEnvMap(baseEnv, resolved.Tool.Env, ctx)
 	if err != nil {
 		return Invocation{}, err
 	}
+	env := envSliceFromMap(envMap)
 
 	return Invocation{
 		Program: program,
@@ -160,15 +162,22 @@ func buildArgList(args []string, ctx templateContext) ([]string, error) {
 	return result, nil
 }
 
-func buildEnv(toolEnv map[string]string, ctx templateContext) ([]string, error) {
-	resolved := make([]string, 0, len(toolEnv))
+// buildEnvMap evaluates tool environment variables and merges them with the base environment.
+//
+// baseEnv is typically `os.Environ()` or the parent process environment.
+// baseEnv is not handled as template.
+func buildEnvMap(baseEnv []string, toolEnv map[string]string, ctx templateContext) (map[string]string, error) {
+	baseEnvMap := envMapFromSlice(baseEnv)
+
+	evaluatedToolEnv := make(map[string]string, len(toolEnv))
 	for key, raw := range toolEnv {
 		value, err := evalTemplate(raw, ctx)
 		if err != nil {
 			return nil, err
 		}
-		resolved = append(resolved, key+"="+value)
+		evaluatedToolEnv[key] = value
 	}
 
-	return resolved, nil
+	merged := mergeMap(baseEnvMap, evaluatedToolEnv)
+	return merged, nil
 }

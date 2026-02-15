@@ -4,5 +4,5 @@ import (
 	_ "embed"
 )
 
-//go:embed init.yml
+//go:embed default/config.yml
 var DefaultConfigYAML []byte

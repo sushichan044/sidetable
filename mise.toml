@@ -7,6 +7,10 @@ run = "mise run dev"
 description = "Run the application with .config/sidetable configuration"
 env = { SIDETABLE_CONFIG_DIR = "{{config_root}}/.config/sidetable" }
 
+[tasks."dev:default"]
+run = "mise run dev"
+env = { SIDETABLE_CONFIG_DIR = "{{config_root}}/internal/config/default" }
+
 [tasks.lint]
 description = "Run golangci-lint"
 run = "golangci-lint run"
