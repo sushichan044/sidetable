@@ -40,6 +40,27 @@ tools:
 	require.Contains(t, stderr, "invocation failed with exit code 42")
 }
 
+func TestExecuteDoesNotLeakInjectedCommandsBetweenRuns(t *testing.T) {
+	firstConfigYAML := `directory: .sidetable
+tools:
+  cmd_once:
+    run: sh
+    args:
+      prepend: ["-c", "exit 0"]
+`
+
+	secondConfigYAML := `directory: .sidetable
+tools: {}
+`
+
+	firstExitCode, _ := runExecuteWithTempConfig(t, firstConfigYAML, "cmd_once")
+	require.Equal(t, 0, firstExitCode)
+
+	secondExitCode, secondStderr := runExecuteWithTempConfig(t, secondConfigYAML, "cmd_once")
+	require.Equal(t, 1, secondExitCode)
+	require.Contains(t, secondStderr, "unknown command")
+}
+
 func runExecuteWithTempConfig(t *testing.T, configYAML string, args ...string) (int, string) {
 	t.Helper()
 
@@ -54,6 +75,7 @@ func runExecuteWithTempConfig(t *testing.T, configYAML string, args ...string) (
 	origOut := rootCmd.OutOrStdout()
 	origErr := rootCmd.ErrOrStderr()
 	t.Cleanup(func() {
+		clearInjectedUserCommands()
 		rootCmd.SetOut(origOut)
 		rootCmd.SetErr(origErr)
 		rootCmd.SetArgs(nil)

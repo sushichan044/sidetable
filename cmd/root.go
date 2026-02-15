@@ -24,6 +24,8 @@ Use "sidetable list" to inspect available entries.`,
 	Version:      version.Get(),
 }
 
+var injectedUserCommands []*cobra.Command
+
 // Execute executes the root command and returns the exit code.
 func Execute() int {
 	if err := injectUserDefinedCommands(); err != nil {
@@ -58,6 +60,8 @@ func determineExitCode(err error) int {
 }
 
 func injectUserDefinedCommands() error {
+	clearInjectedUserCommands()
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -68,16 +72,29 @@ func injectUserDefinedCommands() error {
 		return err
 	}
 
-	subCommands := buildWorkspaceCommands(workspace)
+	subCommands, err := buildWorkspaceCommands(workspace)
+	if err != nil {
+		return err
+	}
+
 	rootCmd.AddCommand(subCommands...)
+	injectedUserCommands = subCommands
 
 	return nil
 }
 
-func buildWorkspaceCommands(workspace *sidetable.Workspace) []*cobra.Command {
+func clearInjectedUserCommands() {
+	if len(injectedUserCommands) == 0 {
+		return
+	}
+	rootCmd.RemoveCommand(injectedUserCommands...)
+	injectedUserCommands = nil
+}
+
+func buildWorkspaceCommands(workspace *sidetable.Workspace) ([]*cobra.Command, error) {
 	catalog, err := workspace.Catalog()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	cmds := make([]*cobra.Command, 0, len(catalog.Entries))
@@ -96,5 +113,5 @@ func buildWorkspaceCommands(workspace *sidetable.Workspace) []*cobra.Command {
 		cmds = append(cmds, subCmd)
 	}
 
-	return cmds
+	return cmds, nil
 }
