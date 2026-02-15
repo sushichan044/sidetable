@@ -33,25 +33,25 @@ var (
 
 // Config represents configuration file structure.
 type Config struct {
-	Directory      string           `yaml:"directory"`
-	Tools          map[string]Tool  `yaml:"tools"`
-	Aliases        map[string]Alias `yaml:"aliases"`
-	ConfigDir      string           `yaml:"-"`
+	Directory string           `yaml:"directory"`
+	Tools     map[string]Tool  `yaml:"tools"`
+	Aliases   map[string]Alias `yaml:"aliases"`
+	ConfigDir string           `yaml:"-"`
 }
 
 // Tool represents a tool definition.
 type Tool struct {
-	Run           string            `yaml:"run"`
-	Args          Args              `yaml:"args"`
-	Env           map[string]string `yaml:"env"`
-	Description   string            `yaml:"description"`
+	Run         string            `yaml:"run"`
+	Args        Args              `yaml:"args"`
+	Env         map[string]string `yaml:"env"`
+	Description string            `yaml:"description"`
 }
 
 // Alias represents an alias definition.
 type Alias struct {
-	Tool          string  `yaml:"tool"`
-	Args          Args    `yaml:"args"`
-	Description   string  `yaml:"description"`
+	Tool        string `yaml:"tool"`
+	Args        Args   `yaml:"args"`
+	Description string `yaml:"description"`
 }
 
 // Args represents user-arg injection configuration.
