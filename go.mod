@@ -11,7 +11,7 @@ require (
 	github.com/Oudwins/zog v0.22.1-0.20260207152405-f27b872631d1
 	github.com/fatih/color v1.18.0
 	github.com/goccy/go-yaml v1.19.2
-	github.com/mattn/go-runewidth v0.0.19
+	github.com/mattn/go-runewidth v0.0.20
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 )
