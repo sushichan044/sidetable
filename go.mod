@@ -1,6 +1,6 @@
 module github.com/sushichan044/sidetable
 
-go 1.25
+go 1.25.0
 
 tool (
 	github.com/mfridman/tparse
@@ -9,7 +9,7 @@ tool (
 
 require (
 	github.com/Oudwins/zog v0.22.1-0.20260207152405-f27b872631d1
-	github.com/fatih/color v1.18.0
+	github.com/fatih/color v1.19.0
 	github.com/goccy/go-yaml v1.19.2
 	github.com/mattn/go-runewidth v0.0.20
 	github.com/spf13/cobra v1.10.2
@@ -47,7 +47,7 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
