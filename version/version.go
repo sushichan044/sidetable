@@ -1,7 +1,5 @@
 // Package version provides version information of the application. It uses Go's build info to determine the version, VCS revision, and modification status.
 // Version information is automatically embedded at build time using Go's build info.
-//
-//nolint:revive // this is fine
 package version
 
 import (
