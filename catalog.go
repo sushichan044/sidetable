@@ -15,10 +15,11 @@ const (
 
 // Entry is a listable tool or alias.
 type Entry struct {
-	Name        string
-	Kind        EntryKind
-	Target      string
-	Description string
+	Name         string
+	Kind         EntryKind
+	Target       string
+	Description  string
+	Instructions string
 }
 
 // Catalog contains all listable entries.
@@ -36,9 +37,10 @@ func (w *Workspace) Catalog() (*Catalog, error) {
 	for _, name := range w.config.ToolNames() {
 		tool := w.config.Tools[name]
 		entries = append(entries, Entry{
-			Name:        name,
-			Kind:        EntryKindTool,
-			Description: tool.Description,
+			Name:         name,
+			Kind:         EntryKindTool,
+			Description:  tool.Description,
+			Instructions: tool.Instructions,
 		})
 	}
 

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "sidetable": {
+      "command": "go",
+      "args": ["run", "./cmd/sidetable", "mcp"],
+      "env": {
+        "SIDETABLE_CONFIG_DIR": "./.config/sidetable"
+      }
+    }
+  }
+}
