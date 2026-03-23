@@ -4,7 +4,7 @@
       "command": "go",
       "args": ["run", "./cmd/sidetable", "mcp"],
       "env": {
-        "SIDETABLE_TOOLS_DIR": "./.config/sidetable"
+        "SIDETABLE_CONFIG_DIR": "./.config/sidetable"
       }
     }
   }

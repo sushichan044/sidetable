@@ -57,6 +57,9 @@ func runWithExecutor(
 	if err != nil {
 		var result sdkmcp.CallToolResult
 		result.SetError(err)
+		if stdout != "" {
+			result.Content = append(result.Content, &sdkmcp.TextContent{Text: stdout})
+		}
 		if stderr != "" {
 			result.Content = append(result.Content, &sdkmcp.TextContent{Text: "stderr:\n" + stderr})
 		}
