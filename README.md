@@ -192,10 +192,10 @@ aliases:
       # - "--some-flag"
     # Optional. Description shown in `sidetable list`.
     description: "ghq get shortcut"
+```
 
 `description` is a short human-facing summary used in `sidetable list`.
 `instructions` is tool-only freeform metadata intended for AI or other helpers that read the config directly. It does not affect `sidetable list`, `--help`, or runtime behavior.
-```
 
 ### Template variables
 
