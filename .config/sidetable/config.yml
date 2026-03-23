@@ -9,6 +9,12 @@ tools:
       # Tool-specific directory path.
       GHQ_ROOT: "{{.ToolDir}}"
     description: "ghq wrapper with project-local root"
+    instructions: |
+      Use this for repository operations within the project-local GHQ root.
+      Common workflow:
+        1. Clone with the `gg` alias for `get -u`.
+        2. Inspect or list repositories with `sidetable ghq list`.
+      Avoid using global GHQ_ROOT when working in this project.
 
   note:
     # You can reference the config directory.
