@@ -17,6 +17,10 @@ tools:
         - "on workspace {{.WorkspaceRoot}}"
     # Optional. Description shown in `sidetable list`.
     description: "Say hello"
+    # Optional. AI-oriented instructions for how to use this tool.
+    instructions: |
+      Use this tool for a quick smoke check of sidetable argument injection.
+      Typical workflow: run it directly, then compare with the hello-world alias.
   some-script:
     # You can use {{.ConfigDir}} to reference the directory containing this config file.
     run: "{{.ConfigDir}}/scripts/some-script.sh"

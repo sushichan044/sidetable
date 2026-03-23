@@ -161,6 +161,13 @@ tools:
       GHQ_ROOT: "{{.ToolDir}}"
     # Optional. Description shown in `sidetable list`.
     description: "ghq wrapper with project-local root"
+    # Optional. AI-oriented instructions for how to use this tool.
+    instructions: |
+      Use this for repository operations within the project-local GHQ root.
+      Common workflow:
+        1. Clone with the `gg` alias for `get -u`.
+        2. Inspect or list repositories with `sidetable ghq list`.
+      Avoid using global GHQ_ROOT when working in this project.
 
   note:
     run: "{{.ConfigDir}}/vim-note.sh"
@@ -185,6 +192,9 @@ aliases:
       # - "--some-flag"
     # Optional. Description shown in `sidetable list`.
     description: "ghq get shortcut"
+
+`description` is a short human-facing summary used in `sidetable list`.
+`instructions` is tool-only freeform metadata intended for AI or other helpers that read the config directly. It does not affect `sidetable list`, `--help`, or runtime behavior.
 ```
 
 ### Template variables
