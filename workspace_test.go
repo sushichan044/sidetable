@@ -40,6 +40,29 @@ func setupTestWorkspace(
 	return workspace
 }
 
+func TestWorkspace_Tools(t *testing.T) {
+	t.Run("returns nil for nil workspace", func(t *testing.T) {
+		var w *sidetable.Workspace
+		require.Nil(t, w.Tools())
+	})
+
+	t.Run("returns only tools, not aliases", func(t *testing.T) {
+		ws := setupTestWorkspace(t,
+			map[string]config.Tool{
+				"ghq": {Run: "ghq", Description: "manage repos", Instructions: "use for go repos"},
+			},
+			map[string]config.Alias{
+				"g": {Tool: "ghq"},
+			},
+		)
+		tools := ws.Tools()
+		require.Len(t, tools, 1)
+		require.Contains(t, tools, "ghq")
+		require.Equal(t, "manage repos", tools["ghq"].Description)
+		require.Equal(t, "use for go repos", tools["ghq"].Instructions)
+	})
+}
+
 func TestWorkspaceRun(t *testing.T) {
 	ws := setupTestWorkspace(
 		t,
