@@ -324,6 +324,9 @@ tools:
   ghq:
     run: ghq
     description: "ghq wrapper"
+    instructions: |
+      Use this tool for repository operations.
+      Common workflow: clone first, then inspect.
     env:
       A: a
       B: b
@@ -350,6 +353,8 @@ aliases:
 	require.True(t, ok)
 	require.Equal(t, "ghq", tool.Run)
 	require.Equal(t, "ghq wrapper", tool.Description)
+	require.Contains(t, tool.Instructions, "Use this tool for repository operations.")
+	require.Contains(t, tool.Instructions, "Common workflow: clone first, then inspect.")
 	require.Equal(t, map[string]string{"A": "a", "B": "b"}, tool.Env)
 	require.ElementsMatch(t, []string{"-l"}, tool.Args.Prepend)
 	require.ElementsMatch(t, []string{"-v"}, tool.Args.Append)
@@ -358,6 +363,20 @@ aliases:
 	require.True(t, ok)
 	require.Equal(t, "ghq", alias.Tool)
 	require.ElementsMatch(t, []string{"get"}, alias.Args.Append)
+}
+
+func TestValidate_AllowsToolInstructions(t *testing.T) {
+	cfg := &config.Config{
+		Directory: ".private",
+		Tools: map[string]config.Tool{
+			"ghq": {
+				Run:          "ghq",
+				Instructions: "Use for repo operations.\nPrefer aliases for common flows.",
+			},
+		},
+	}
+
+	require.NoError(t, cfg.Validate())
 }
 
 func TestLoad_InvalidYAML(t *testing.T) {

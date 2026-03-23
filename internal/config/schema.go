@@ -44,9 +44,10 @@ var (
 			TestFunc(func(val *string, _ z.Ctx) bool {
 				return !strings.ContainsAny(*val, " \t\n\r")
 			}, z.Message(msgToolRunMustNotContainSpace)),
-		"args":        argsSchema,
-		"env":         envSchema,
-		"description": z.String(),
+		"args":         argsSchema,
+		"env":          envSchema,
+		"description":  z.String(),
+		"instructions": z.String(),
 	})
 	toolNameSchema = z.String().
 			TestFunc(func(val *string, _ z.Ctx) bool {

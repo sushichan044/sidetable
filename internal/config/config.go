@@ -26,10 +26,11 @@ type Config struct {
 
 // Tool represents a tool definition.
 type Tool struct {
-	Run         string            `yaml:"run"`
-	Args        Args              `yaml:"args"`
-	Env         map[string]string `yaml:"env"`
-	Description string            `yaml:"description"`
+	Run          string            `yaml:"run"`
+	Args         Args              `yaml:"args"`
+	Env          map[string]string `yaml:"env"`
+	Description  string            `yaml:"description"`
+	Instructions string            `yaml:"instructions"`
 }
 
 // Alias represents an alias definition.
