@@ -1,0 +1,11 @@
+setup:
+  jobs:
+    - run: go mod tidy
+
+post_edit:
+  jobs:
+    - glob: "**/*.go"
+      run:  golangci-lint run ./{{dir .File}} && golangci-lint run --fix ./{{dir .File}}
+
+    - glob: "**/*.go"
+      run: go test ./{{dir .File}}
