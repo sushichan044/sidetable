@@ -29,6 +29,23 @@ var mcpCmd = &cobra.Command{
 			return err
 		}
 
+		catalog, err := workspace.Catalog()
+		if err != nil {
+			return err
+		}
+
+		tools := make([]internalmcp.ToolDef, 0, len(catalog.Entries))
+		for _, e := range catalog.Entries {
+			if e.Kind != sidetable.EntryKindTool {
+				continue
+			}
+			desc := e.Instructions
+			if desc == "" {
+				desc = e.Description
+			}
+			tools = append(tools, internalmcp.ToolDef{Name: e.Name, Description: desc})
+		}
+
 		executor := func(ctx context.Context, name string, args []string) (string, string, error) {
 			var stdoutBuf, stderrBuf bytes.Buffer
 			runErr := workspace.Run(ctx, name, args, sidetable.InvokeOptions{
@@ -39,7 +56,7 @@ var mcpCmd = &cobra.Command{
 			return stdoutBuf.String(), stderrBuf.String(), runErr
 		}
 
-		server := internalmcp.BuildServer(workspace.Tools(), executor)
+		server := internalmcp.BuildServer(tools, executor)
 		return server.Run(cmd.Context(), &sdkmcp.StdioTransport{})
 	},
 }

@@ -77,16 +77,6 @@ func (w *Workspace) Root() string {
 	return w.rootDir
 }
 
-// Tools returns the configured tool definitions.
-// Only tools are returned; aliases are not included.
-// The returned map must not be modified.
-func (w *Workspace) Tools() map[string]config.Tool {
-	if w == nil || w.config == nil {
-		return nil
-	}
-	return w.config.Tools
-}
-
 // Run resolves then executes a tool or alias.
 func (w *Workspace) Run(ctx context.Context, name string, userArgs []string, opts InvokeOptions) error {
 	if w == nil || w.config == nil {

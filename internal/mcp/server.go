@@ -5,7 +5,6 @@ import (
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/sushichan044/sidetable/internal/config"
 	"github.com/sushichan044/sidetable/version"
 )
 
@@ -13,22 +12,28 @@ import (
 // Returns (stdout, stderr, error).
 type ToolExecutor func(ctx context.Context, name string, args []string) (string, string, error)
 
+// ToolDef is the minimal information needed to register a sidetable tool as an MCP tool.
+type ToolDef struct {
+	Name        string
+	Description string
+}
+
 // ToolInput is the MCP input schema for sidetable tools.
 type ToolInput struct {
 	Args []string `json:"args" jsonschema:"arguments to pass to the tool"`
 }
 
-// BuildServer constructs an MCP server populated with tools from the given map.
-// Only tools (not aliases) should be passed; the executor is called for each tool invocation.
-func BuildServer(tools map[string]config.Tool, executor ToolExecutor) *sdkmcp.Server {
+// BuildServer constructs an MCP server populated with the given tools.
+// The executor is called for each tool invocation.
+func BuildServer(tools []ToolDef, executor ToolExecutor) *sdkmcp.Server {
 	server := sdkmcp.NewServer(&sdkmcp.Implementation{
 		Name:    "sidetable",
 		Version: version.Get(),
 	}, nil)
 
-	for name, tool := range tools {
-		toolName := name
-		desc := ToolDescription(tool)
+	for _, tool := range tools {
+		toolName := tool.Name
+		desc := tool.Description
 
 		sdkmcp.AddTool(server, &sdkmcp.Tool{
 			Name:        toolName,
@@ -39,15 +44,6 @@ func BuildServer(tools map[string]config.Tool, executor ToolExecutor) *sdkmcp.Se
 	}
 
 	return server
-}
-
-// ToolDescription returns the description to use for an MCP tool.
-// Instructions is preferred; falls back to Description.
-func ToolDescription(tool config.Tool) string {
-	if tool.Instructions != "" {
-		return tool.Instructions
-	}
-	return tool.Description
 }
 
 func runWithExecutor(

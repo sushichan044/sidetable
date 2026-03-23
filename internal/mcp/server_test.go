@@ -8,28 +8,12 @@ import (
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/sushichan044/sidetable/internal/config"
 	internalmcp "github.com/sushichan044/sidetable/internal/mcp"
 )
 
-func TestToolDescription(t *testing.T) {
-	t.Run("prefers instructions over description", func(t *testing.T) {
-		tool := config.Tool{Description: "short", Instructions: "long AI instructions"}
-		require.Equal(t, "long AI instructions", internalmcp.ToolDescription(tool))
-	})
-	t.Run("falls back to description when instructions empty", func(t *testing.T) {
-		tool := config.Tool{Description: "short", Instructions: ""}
-		require.Equal(t, "short", internalmcp.ToolDescription(tool))
-	})
-	t.Run("returns empty string when both empty", func(t *testing.T) {
-		tool := config.Tool{}
-		require.Empty(t, internalmcp.ToolDescription(tool))
-	})
-}
-
-func testTools() map[string]config.Tool {
-	return map[string]config.Tool{
-		"my-tool": {Run: "echo", Description: "A tool"},
+func testTools() []internalmcp.ToolDef {
+	return []internalmcp.ToolDef{
+		{Name: "my-tool", Description: "A tool"},
 	}
 }
 
